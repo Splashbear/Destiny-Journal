@@ -21,9 +21,6 @@ import { BungieAuthModule } from './bungie-auth/bungie-auth.module'
 import { BungieStatusComponent } from './bungie-status/bungie-status.component'
 import { FooterComponent } from './footer/footer.component'
 import { FrontPageComponent } from './front-page/front-page.component'
-import { DayModalComponent } from './guardian/day-modal/day-modal.component'
-import { GuardianComponent } from './guardian/guardian.component'
-import { Guardian3DComponent } from './guardian3d/guardian3d.component'
 import { ManifestPipe } from './manifest/manifest.pipe'
 import { NavComponent } from './nav/nav.component'
 import { ActivitiesTotalHoursPipe } from './pipes/activities-total-hours.pipe'
@@ -143,10 +140,7 @@ navigator.languages.some((l) => {
     AppComponent,
     NavComponent,
     FrontPageComponent,
-    GuardianComponent,
-    Guardian3DComponent,
     AddTimePipe,
-    DayModalComponent,
     ManifestPipe,
     ActivitiesTotalTimePipe,
     ParseMinutesPlayedPipe,
