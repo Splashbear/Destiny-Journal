@@ -41,10 +41,8 @@ export class WebringSheetComponent {
       icon: './assets/webring/srl2.png',
     },
     {
-      url: 'https://github.com/chrisfried/secret-scrublandeux',
-      name: 'Scrublandeux on GitHub',
-      description: "The source isn't pretty, but it's open",
-      icon: './assets/webring/github-mark-white.png',
+      url: 'https://github.com/Splashbear/Destiny-Journal',
+      name: 'Destiny Journal on GitHub',
     },
     {
       url: 'https://mastodon.chateaude.luxe/@chrisfried',

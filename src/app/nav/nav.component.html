@@ -1,5 +1,4 @@
 <span class="mat-headline-5 headline">Destiny 2 Activity Viewer</span>
-<a mat-raised-button class="switch-game" href="https://chrisfried.github.io/secret-scrubland/">Switch to Destiny 1</a>
 <div style="margin-bottom: 1em">
   <button *ngIf="(bungieAuth.hasValidAccessToken$ | async) === false" mat-raised-button color="primary" class="button"
     (click)="login()">

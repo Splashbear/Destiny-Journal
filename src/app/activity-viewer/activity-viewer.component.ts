@@ -4,7 +4,7 @@ import { MatDatepickerInputEvent } from '@angular/material/datepicker';
 import { BungieAuthService } from '../bungie-auth/bungie-auth.service';
 import { ManifestService } from '../manifest/manifest.service';
 import { BungieQueueService } from '../services/queue.service';
-import { scrubland } from '../scrubland.typings';
+import { destiny } from '../scrubland.typings';
 import { BehaviorSubject, EMPTY, forkJoin, Observable, of, Subscription } from 'rxjs';
 import { distinctUntilChanged, map, switchMap, take, tap } from 'rxjs/operators';
 import { 
@@ -35,7 +35,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
   private accountResponse$: BehaviorSubject<any> = new BehaviorSubject([]);
   public displayName = '';
   public characters$: Observable<DestinyCharacterComponent[]> = of([]);
-  public activities: scrubland.Activity[] = [];
+  public activities: destiny.Activity[] = [];
   public loading = false;
   public errorStatus = '';
   public errorMessage = '';
@@ -171,7 +171,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
           this.errorMessage = res.Message;
         }
         if (res?.Response?.activities?.length) {
-          res.Response.activities.forEach((activity: scrubland.Activity) => {
+          res.Response.activities.forEach((activity: destiny.Activity) => {
             activity.characterId = params.characterId;
             const period = new Date(activity.period);
             const startDate = period.getTime() / 1000 + activity.values.startSeconds.basic.value;
@@ -197,11 +197,11 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     );
   }
 
-  getActivityType(activity: scrubland.Activity): string {
+  getActivityType(activity: destiny.Activity): string {
     return this.manifestService.defs.ActivityMode.get(activity.activityDetails.mode)?.displayProperties.name || 'Unknown';
   }
 
-  getActivityDuration(activity: scrubland.Activity): string {
+  getActivityDuration(activity: destiny.Activity): string {
     if (activity.startDate && activity.endDate) {
       const duration = activity.endDate.getTime() - activity.startDate.getTime();
       const minutes = Math.floor(duration / 60000);
@@ -223,7 +223,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     return Array.from(types).sort();
   }
 
-  getActivitiesByType(type: string): scrubland.Activity[] {
+  getActivitiesByType(type: string): destiny.Activity[] {
     return this.activities.filter(activity => this.getActivityType(activity) === type);
   }
 } 

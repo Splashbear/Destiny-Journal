@@ -1,12 +1,12 @@
 import { Pipe, PipeTransform } from '@angular/core'
-import { scrubland } from '../scrubland.typings'
+import { destiny } from '../scrubland.typings'
 
 @Pipe({
   name: 'activitiesTotalTime',
   pure: false,
 })
 export class ActivitiesTotalTimePipe implements PipeTransform {
-  transform(activities: scrubland.Activity[], periods?: number): any {
+  transform(activities: destiny.Activity[], periods?: number): any {
     let time = activities.reduce(function (totalTime, activity) {
       return totalTime + +activity.values.timePlayedSeconds.basic.value
     }, 0)
