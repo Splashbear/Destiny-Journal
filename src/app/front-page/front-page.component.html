@@ -1,1 +1,14 @@
-<p class="mat-body-2">Welcome back, Guardian.</p>
+<div class="front-page-container">
+  <h1>Destiny Journal</h1>
+  <p class="mat-body-1">Track and view your Destiny 2 activities</p>
+  <div *ngIf="(bungieAuth.hasValidAccessToken$ | async) === false">
+    <button mat-raised-button color="primary" (click)="login()">
+      Login with Bungie <mat-icon aria-label="Login with Bungie">login</mat-icon>
+    </button>
+  </div>
+  <div *ngIf="bungieAuth.hasValidAccessToken$ | async">
+    <button mat-raised-button color="primary" routerLink="/activities">
+      View Activities <mat-icon aria-label="View Activities">calendar_today</mat-icon>
+    </button>
+  </div>
+</div>
