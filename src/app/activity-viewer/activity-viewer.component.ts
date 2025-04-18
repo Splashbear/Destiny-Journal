@@ -4,7 +4,7 @@ import { MatDatepickerInputEvent } from '@angular/material/datepicker';
 import { BungieAuthService } from '../bungie-auth/bungie-auth.service';
 import { ManifestService } from '../manifest/manifest.service';
 import { BungieQueueService } from '../services/queue.service';
-import { Activity } from '../types/activity.types';
+import { Activity, DestinyVersion } from '../types/activity.types';
 import { BehaviorSubject, forkJoin, Observable, of, Subscription } from 'rxjs';
 import { distinctUntilChanged, switchMap, take, tap } from 'rxjs/operators';
 import { 
@@ -137,6 +137,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.errorStatus = '';
     this.errorMessage = '';
+    this.activities = []; // Clear existing activities
 
     this.membershipDataForCurrentUser$.pipe(take(1)).subscribe((userMembershipData) => {
       if (!userMembershipData?.Response?.destinyMemberships) {
@@ -146,22 +147,58 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
         return;
       }
 
+      // Get the current year and Destiny's release year (2014)
+      const currentYear = new Date().getFullYear();
+      const destinyReleaseYear = 2014;
+      const destiny2ReleaseDate = new Date('2017-09-06');
+
+      // Create a date object for the selected date
+      const selectedDate = new Date(date);
+      
+      // Create an array of all years from release to current
+      const years = Array.from(
+        { length: currentYear - destinyReleaseYear + 1 },
+        (_, i) => currentYear - i
+      );
+
+      // For each membership and year, fetch activities for both Destiny 1 and 2
       userMembershipData.Response.destinyMemberships.forEach((destinyMembership) => {
         const { membershipId, membershipType } = destinyMembership;
-        const params: GetActivityHistoryParams = {
-          characterId: '0',
-          destinyMembershipId: membershipId,
-          membershipType,
-          mode: DestinyActivityModeType.AllPvP,
-          count: 250,
-          page: 0,
-        };
-        this.addHistorySub(params);
+        
+        years.forEach(year => {
+          // Create a date object for the selected date in each year
+          const yearDate = new Date(date);
+          yearDate.setFullYear(year);
+
+          // Fetch Destiny 1 activities for all years (Destiny 1 is still active)
+          const d1Params: GetActivityHistoryParams = {
+            characterId: '0',
+            destinyMembershipId: membershipId,
+            membershipType,
+            mode: DestinyActivityModeType.AllPvP,
+            count: 250,
+            page: 0,
+          };
+          this.addHistorySub(d1Params, yearDate, 'Destiny1');
+
+          // Only fetch Destiny 2 activities if the date is after Destiny 2's release
+          if (yearDate >= destiny2ReleaseDate) {
+            const d2Params: GetActivityHistoryParams = {
+              characterId: '0',
+              destinyMembershipId: membershipId,
+              membershipType,
+              mode: DestinyActivityModeType.AllPvP,
+              count: 250,
+              page: 0,
+            };
+            this.addHistorySub(d2Params, yearDate, 'Destiny2');
+          }
+        });
       });
     });
   }
 
-  private async addHistorySub(params: GetActivityHistoryParams) {
+  private async addHistorySub(params: GetActivityHistoryParams, targetDate: Date, destinyVersion: DestinyVersion) {
     const action = getActivityHistory;
     const callback = async (response: ServerResponse<DestinyActivityHistoryResults>) => {
       if (response?.Response?.activities) {
@@ -169,11 +206,10 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
           response.Response.activities
             .filter((activity) => {
               const activityDate = new Date(activity.period);
-              const selectedDate = this.date.value;
-              if (!selectedDate) return false;
               return (
-                activityDate.getMonth() === selectedDate.getMonth() &&
-                activityDate.getDate() === selectedDate.getDate()
+                activityDate.getMonth() === targetDate.getMonth() &&
+                activityDate.getDate() === targetDate.getDate() &&
+                activityDate.getFullYear() === targetDate.getFullYear()
               );
             })
             .map(async (activity: DestinyHistoricalStatsPeriodGroup) => ({
@@ -181,9 +217,10 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
               activityType: await this.getActivityType(activity),
               duration: this.getActivityDuration(activity),
               year: new Date(activity.period).getFullYear(),
+              destinyVersion,
             }))
         );
-        this.activities = activities as Activity[];
+        this.activities = [...this.activities, ...activities as Activity[]];
       }
       this.loading = false;
       return response;
@@ -222,12 +259,45 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
   }
 
   getYears(): number[] {
-    return [...new Set(this.activities.map(activity => activity.year))].sort((a, b) => b - a);
+    const currentYear = new Date().getFullYear();
+    const destinyReleaseYear = 2014;
+    return Array.from(
+      { length: currentYear - destinyReleaseYear + 1 },
+      (_, i) => currentYear - i
+    );
+  }
+
+  hasActivitiesForYear(year: number): boolean {
+    return this.activities.some(activity => activity.year === year);
+  }
+
+  getActivityTypesForYear(year: number): string[] {
+    return [...new Set(
+      this.activities
+        .filter(activity => activity.year === year)
+        .map(activity => activity.activityType)
+    )];
   }
 
   getActivitiesByTypeAndYear(type: string, year: number): Activity[] {
     return this.activities.filter(activity => 
       activity.activityType === type && activity.year === year
+    );
+  }
+
+  getDestinyVersionsForYear(year: number): DestinyVersion[] {
+    return [...new Set(
+      this.activities
+        .filter(activity => activity.year === year)
+        .map(activity => activity.destinyVersion)
+    )];
+  }
+
+  getActivitiesByTypeYearAndVersion(type: string, year: number, version: DestinyVersion): Activity[] {
+    return this.activities.filter(activity => 
+      activity.activityType === type && 
+      activity.year === year && 
+      activity.destinyVersion === version
     );
   }
 } 
