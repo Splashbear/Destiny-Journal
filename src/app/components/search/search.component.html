@@ -1,0 +1,19 @@
+<div class="search-container">
+  <input
+    type="text"
+    [formControl]="searchControl"
+    (focus)="onFocus()"
+    (blur)="onBlur()"
+    placeholder="Search for a Guardian..."
+    class="search-input"
+  />
+  <div class="search-results" *ngIf="showResults">
+    <div
+      *ngFor="let result of searchResults$ | async"
+      (click)="onResultClick(result)"
+      class="search-result-item"
+    >
+      {{ result.displayName }}#{{ result.bungieGlobalDisplayNameCode }}
+    </div>
+  </div>
+</div> 

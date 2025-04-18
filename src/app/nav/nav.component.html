@@ -1,10 +1,17 @@
-<span class="mat-headline-5 headline">Destiny 2 Activity Viewer</span>
-<div style="margin-bottom: 1em">
-  <button *ngIf="(bungieAuth.hasValidAccessToken$ | async) === false" mat-raised-button color="primary" class="button"
-    (click)="login()">
-    Login with Bungie <mat-icon aria-label="Login with Bungie">login</mat-icon>
-  </button>
-  <button *ngIf="bungieAuth.hasValidAccessToken$ | async" mat-raised-button class="button" (click)="logout()">
-    Logout <mat-icon aria-label="Logout">logout</mat-icon>
-  </button>
+<div class="nav-container">
+  <div class="nav-header">
+    <span class="mat-headline-5 headline">Destiny 2 Activity Viewer</span>
+    <div class="auth-buttons">
+      <button *ngIf="(bungieAuth.hasValidAccessToken$ | async) === false" mat-raised-button color="primary" class="button"
+        (click)="login()">
+        Login with Bungie <mat-icon aria-label="Login with Bungie">login</mat-icon>
+      </button>
+      <button *ngIf="bungieAuth.hasValidAccessToken$ | async" mat-raised-button class="button" (click)="logout()">
+        Logout <mat-icon aria-label="Logout">logout</mat-icon>
+      </button>
+    </div>
+  </div>
+  <div class="search-container">
+    <app-search></app-search>
+  </div>
 </div>

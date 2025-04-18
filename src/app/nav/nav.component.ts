@@ -2,13 +2,14 @@ import { Component, OnInit } from '@angular/core'
 import { BungieAuthService } from '../bungie-auth/bungie-auth.service'
 import { Router, RouterModule } from '@angular/router'
 import { CommonModule } from '@angular/common'
+import { SearchComponent } from '../components/search/search.component'
 
 @Component({
   selector: 'app-nav',
   templateUrl: './nav.component.html',
   styleUrls: ['./nav.component.scss'],
   standalone: true,
-  imports: [CommonModule, RouterModule]
+  imports: [CommonModule, RouterModule, SearchComponent]
 })
 export class NavComponent implements OnInit {
   public searchString: string
