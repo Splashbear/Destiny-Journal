@@ -168,18 +168,13 @@ export class ManifestService {
     this.setState({ statusText })
   }
 
-  // This is not an anonymous arrow function inside loadManifestRemote because of https://bugs.webkit.org/show_bug.cgi?id=166879private async saveManifestToIndexedDB(typedArray: object, version: string, tableWhitelist: string[]) {
+  private async saveManifestToIndexedDB(manifest: any, version: string, tables: string[]) {
     try {
-      await set(this.idbKey, typedArray)
+      await set(this.idbKey, manifest)
       localStorage.setItem(this.localStorageKey, version)
-      localStorage.setItem(this.localStorageKey + '-whitelist', JSON.stringify(tableWhitelist))
+      localStorage.setItem(this.localStorageKey + '-whitelist', JSON.stringify(tables))
     } catch (e) {
-      if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-        console.error('IndexedDB quota exceeded. Cannot save manifest file.')
-      } else {
-        console.error('Error saving manifest file', e)
-      }
-      // You can also consider retrying the operation or notifying the user
+      console.error('Error saving manifest to IndexedDB:', e)
     }
   }
 

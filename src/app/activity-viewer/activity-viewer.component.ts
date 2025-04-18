@@ -21,6 +21,7 @@ import {
   GetCharacterParams,
   getHistoricalStatsForAccount,
   GetHistoricalStatsForAccountParams,
+  ServerResponse,
 } from 'bungie-api-ts/destiny2';
 import { getMembershipDataForCurrentUser, UserMembershipData } from 'bungie-api-ts/user';
 
@@ -31,8 +32,8 @@ import { getMembershipDataForCurrentUser, UserMembershipData } from 'bungie-api-
 })
 export class ActivityViewerComponent implements OnInit, OnDestroy {
   private subs: Subscription[] = [];
-  private membershipDataForCurrentUser$: BehaviorSubject<any> = new BehaviorSubject(undefined);
-  private accountResponse$: BehaviorSubject<any> = new BehaviorSubject([]);
+  private membershipDataForCurrentUser$ = new BehaviorSubject<ServerResponse<UserMembershipData> | undefined>(undefined);
+  private accountResponse$ = new BehaviorSubject<ServerResponse<DestinyHistoricalStatsAccountResult>[]>([]);
   public displayName = '';
   public characters$: Observable<DestinyCharacterComponent[]> = of([]);
   public activities: destiny.Activity[] = [];
@@ -58,7 +59,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
           tap((hasValidAccessToken) => {
             if (hasValidAccessToken) {
               const action = getMembershipDataForCurrentUser;
-              const callback = (response: any) => {
+              const callback = (response: ServerResponse<UserMembershipData>) => {
                 this.membershipDataForCurrentUser$.next(response);
               };
               this.bungieQueue.addToQueue('getProfile', action, callback);
@@ -80,13 +81,13 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
               userMembershipData.Response.destinyMemberships.map((destinyMembership) => {
                 const { membershipId, membershipType } = destinyMembership;
                 const action = getHistoricalStatsForAccount;
-                const callback = (response: any) => {
+                const callback = (response: ServerResponse<DestinyHistoricalStatsAccountResult>) => {
                   if (response?.Response?.characters?.length > 0) {
                     return forkJoin(
                       response.Response.characters.map((character) => {
                         const { characterId } = character;
                         const actionB = getCharacter;
-                        const callbackB = (res: any) => {
+                        const callbackB = (res: ServerResponse<DestinyCharacterResponse>) => {
                           if (res?.Response?.character) {
                             return res.Response.character;
                           }
@@ -98,7 +99,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
                           membershipType,
                           components: [DestinyComponentType.Characters],
                         };
-                        return this.bungieQueue.addToQueue('getProfile', actionB, callbackB, paramsB);
+                        return this.bungieQueue.addToQueue('getCharacter', actionB, callbackB, paramsB);
                       })
                     );
                   }
@@ -109,14 +110,13 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
                   membershipType,
                   groups: [DestinyStatsGroupType.General],
                 };
-                return this.bungieQueue.addToQueue('getProfile', action, callback, params);
+                return this.bungieQueue.addToQueue('getHistoricalStats', action, callback, params);
               })
             );
           })
         )
-        .subscribe((characters) => {
-          this.characters$ = of([].concat(...characters));
-          this.loadActivitiesForDate(this.date.value);
+        .subscribe((responses) => {
+          this.accountResponse$.next(responses);
         })
     );
   }
@@ -135,58 +135,45 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.errorStatus = '';
     this.errorMessage = '';
-    this.activities = [];
 
-    this.characters$.pipe(take(1)).subscribe((characters) => {
-      if (!characters.length) {
+    this.membershipDataForCurrentUser$.pipe(take(1)).subscribe((userMembershipData) => {
+      if (!userMembershipData?.Response?.destinyMemberships) {
         this.loading = false;
+        this.errorStatus = 'No membership data';
+        this.errorMessage = 'Unable to load membership data';
         return;
       }
 
-      characters.forEach((character) => {
+      userMembershipData.Response.destinyMemberships.forEach((destinyMembership) => {
+        const { membershipId, membershipType } = destinyMembership;
         const params: GetActivityHistoryParams = {
-          destinyMembershipId: character.membershipId,
-          membershipType: character.membershipType,
-          characterId: character.characterId,
-          mode: 0,
+          characterId: '0',
+          destinyMembershipId: membershipId,
+          membershipType,
+          mode: DestinyActivityModeType.AllPvP,
           count: 250,
+          page: 0,
         };
-        this.addHistorySub({ ...params, page: 0 });
+        this.addHistorySub(params);
       });
     });
   }
 
   private addHistorySub(params: GetActivityHistoryParams) {
-    const behaviorSubject: BehaviorSubject<any> = new BehaviorSubject(undefined);
     const action = getActivityHistory;
-    const callback = (response: any) => {
-      behaviorSubject.next(response);
+    const callback = (response: ServerResponse<DestinyActivityHistoryResults>) => {
+      if (response?.Response?.activities) {
+        this.activities = response.Response.activities
+          .filter((activity) => this.isSameDay(new Date(activity.period), this.date.value))
+          .map((activity) => ({
+            ...activity,
+            activityType: this.getActivityType(activity),
+            duration: this.getActivityDuration(activity),
+          }));
+      }
+      this.loading = false;
     };
     this.bungieQueue.addToQueue('getActivityHistory', action, callback, params);
-
-    this.subs.push(
-      behaviorSubject.subscribe((res: any) => {
-        if (res?.ErrorCode !== 1 && res?.ErrorStatus) {
-          this.errorStatus = res.ErrorStatus;
-          this.errorMessage = res.Message;
-        }
-        if (res?.Response?.activities?.length) {
-          res.Response.activities.forEach((activity: destiny.Activity) => {
-            activity.characterId = params.characterId;
-            const period = new Date(activity.period);
-            const startDate = period.getTime() / 1000 + activity.values.startSeconds.basic.value;
-            const endDate = startDate + activity.values.timePlayedSeconds.basic.value;
-            activity.startDate = new Date(startDate * 1000);
-            activity.endDate = new Date(endDate * 1000);
-
-            if (this.isSameDay(activity.startDate, this.date.value)) {
-              this.activities.push(activity);
-            }
-          });
-        }
-        this.loading = false;
-      })
-    );
   }
 
   private isSameDay(date1: Date, date2: Date): boolean {
@@ -198,32 +185,21 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
   }
 
   getActivityType(activity: destiny.Activity): string {
-    return this.manifestService.defs.ActivityMode.get(activity.activityDetails.mode)?.displayProperties.name || 'Unknown';
+    return activity.activityDetails.mode.toString();
   }
 
   getActivityDuration(activity: destiny.Activity): string {
-    if (activity.startDate && activity.endDate) {
-      const duration = activity.endDate.getTime() - activity.startDate.getTime();
-      const minutes = Math.floor(duration / 60000);
-      const hours = Math.floor(minutes / 60);
-      const remainingMinutes = minutes % 60;
-      return `${hours}h ${remainingMinutes}m`;
-    }
-    return 'Unknown';
+    const start = new Date(activity.period);
+    const end = new Date(activity.period);
+    end.setSeconds(end.getSeconds() + activity.values.timePlayedSeconds.basic.value);
+    return `${start.toLocaleTimeString()} - ${end.toLocaleTimeString()}`;
   }
 
   getActivityTypes(): string[] {
-    const types = new Set<string>();
-    this.activities.forEach(activity => {
-      const type = this.getActivityType(activity);
-      if (type) {
-        types.add(type);
-      }
-    });
-    return Array.from(types).sort();
+    return [...new Set(this.activities.map((activity) => this.getActivityType(activity)))].sort();
   }
 
   getActivitiesByType(type: string): destiny.Activity[] {
-    return this.activities.filter(activity => this.getActivityType(activity) === type);
+    return this.activities.filter((activity) => this.getActivityType(activity) === type);
   }
 } 

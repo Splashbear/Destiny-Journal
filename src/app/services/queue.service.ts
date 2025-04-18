@@ -1,20 +1,22 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { GetPostGameCarnageReportParams } from 'bungie-api-ts/destiny2'
-import { ServerResponse } from 'bungie-api-ts/user'
-import { BehaviorSubject } from 'rxjs'
+import { ServerResponse } from 'bungie-api-ts/common'
+import { BehaviorSubject, Observable } from 'rxjs'
 import { debounceTime, take } from 'rxjs/operators'
+
+interface QueueItem<T = any> {
+  actionFunction: (config: any, params: any) => Promise<ServerResponse<T>>
+  callback: (response: ServerResponse<T>) => void
+  params?: any
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class BungieQueueService {
   queue$ = new BehaviorSubject<{
-    [action: string]: {
-      actionFunction: (config: any, params: any) => Promise<ServerResponse<any>>
-      callback: (response: ServerResponse<any>) => void
-      params?: {}
-    }[]
+    [action: string]: QueueItem[]
   }>({
     getGlobalAlerts: [],
     getDestinyManifest: [],
@@ -24,6 +26,7 @@ export class BungieQueueService {
     getActivityHistory: [],
     getPostGameCarnageReport: [],
   })
+
   actionPriority = [
     'getGlobalAlerts',
     'getDestinyManifest',
@@ -33,6 +36,7 @@ export class BungieQueueService {
     'getActivityHistory',
     'getPostGameCarnageReport',
   ]
+
   queueCount: {
     [queue: string]: QueueCount
   } = {
@@ -99,61 +103,83 @@ export class BungieQueueService {
             )
           })
         }
-        if (queue.length) {
-          const nextAction = queue.shift()
-          this.queue$.next(queueDict)
-          if (nextAction) {
-            nextAction
-              .actionFunction(
-                (config: { url: string; method: 'GET' | 'POST'; params: any; body: any }) =>
-                  this.http
-                    .request(config.method, config.url, {
-                      params: config.params,
-                      body: config.body,
-                    })
-                    .toPromise(),
-                nextAction.params
+        if (queue.length > 0) {
+          const item = queue[0]
+          this.queueCount[action].queued = queue.length
+          this.queueCount[action].percentage = Math.round(
+            (this.queueCount[action].completed /
+              (this.queueCount[action].completed + this.queueCount[action].queued)) *
+              100
+          )
+          item
+            .actionFunction(
+              {
+                url: 'https://www.bungie.net/Platform',
+                method: 'GET',
+                params: {},
+                body: {},
+              },
+              item.params
+            )
+            .then((response) => {
+              item.callback(response)
+              this.queueCount[action].completed++
+              this.queueCount[action].percentage = Math.round(
+                (this.queueCount[action].completed /
+                  (this.queueCount[action].completed + this.queueCount[action].queued)) *
+                  100
               )
-              .then((res) => {
-                nextAction.callback(res)
-                this.queueCount[action].completed++
-                this.updateQueue(this.queueCount[action])
+              const newQueue = [...queue]
+              newQueue.shift()
+              this.queue$.next({
+                ...this.queue$.value,
+                [action]: newQueue,
               })
-              .catch((e) => {
-                nextAction.callback(e)
-                this.queueCount[action].errors++
-                this.updateQueue(this.queueCount[action])
+            })
+            .catch((error) => {
+              this.queueCount[action].errors++
+              const newQueue = [...queue]
+              newQueue.shift()
+              this.queue$.next({
+                ...this.queue$.value,
+                [action]: newQueue,
               })
-          }
-          break
+            })
         }
       }
     })
   }
 
-  addToQueue(
+  addToQueue<T>(
     action: string,
-    actionFunction: (config: any, params: any) => Promise<ServerResponse<any>>,
-    callback: (response: ServerResponse<any>) => void,
-    params?: {}
-  ): void {
-    this.queue$.pipe(take(1)).subscribe((queue) => {
-      queue[action] = [...queue[action], { actionFunction, callback, params }]
-      this.queue$.next(queue)
-      this.queueCount[action].queued++
-      this.updateQueue(this.queueCount[action])
+    actionFunction: (config: any, params: any) => Promise<ServerResponse<T>>,
+    callback: (response: ServerResponse<T>) => void,
+    params?: any
+  ): Observable<ServerResponse<T>> {
+    const queue = this.queue$.value[action]
+    if (!queue) {
+      throw new Error(`Unknown action: ${action}`)
+    }
+    const newQueue = [...queue, { actionFunction, callback, params }]
+    this.queue$.next({
+      ...this.queue$.value,
+      [action]: newQueue,
+    })
+    return new Observable<ServerResponse<T>>((subscriber) => {
+      const item = newQueue[newQueue.length - 1]
+      const originalCallback = item.callback
+      item.callback = (response) => {
+        originalCallback(response)
+        subscriber.next(response)
+        subscriber.complete()
+      }
     })
   }
 
-  updateQueue(queueCount: QueueCount): void {
-    queueCount.percentage = queueCount.queued ? ((queueCount.completed + queueCount.errors) / queueCount.queued) * 100 : 100
-    let activeFound = false
-    for (const action of this.actionPriority) {
-      this.queueCount[action].color =
-        activeFound || this.queueCount[action].queued === 0 || this.queueCount[action].percentage === 100 ? 'primary' : 'accent'
-      if (this.queueCount[action].percentage > 0 && this.queueCount[action].percentage < 100) {
-        activeFound = true
-      }
+  updateQueue(queueCount: Partial<Record<string, QueueCount>>): void {
+    this.queueCount = {
+      ...this.queueCount,
+      ...queueCount,
     }
   }
 }
