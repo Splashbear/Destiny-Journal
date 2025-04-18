@@ -32,6 +32,9 @@ export class BungieAuthService {
       responseType: 'code',
       scope: '',
       dummyClientSecret: environment.bungie.clientSecret,
+      oidc: false,
+      strictDiscoveryDocumentValidation: false,
+      showDebugInformation: true
     })
     this.oAuthService.tokenValidationHandler = new JwksValidationHandler()
     this.loadTokensFromStorage()
@@ -100,20 +103,20 @@ export class BungieAuthService {
     this.route.queryParams.subscribe(async (url) => {
       if (url.state && url.state === localStorage.getItem('bungie-nonce')) {
         await this.oAuthService.tryLoginCodeFlow()
-      }
-      if (this.oAuthService.hasValidAccessToken()) {
-        this.oAuthService.setupAutomaticSilentRefresh()
-        this.accessToken$.next(this.oAuthService.getAccessToken())
-        this.refreshToken$.next(this.oAuthService.getRefreshToken())
+        if (this.oAuthService.hasValidAccessToken()) {
+          this.oAuthService.setupAutomaticSilentRefresh()
+          this.accessToken$.next(this.oAuthService.getAccessToken())
+          this.refreshToken$.next(this.oAuthService.getRefreshToken())
+        }
       }
     })
   }
 
   async login() {
     await this.oAuthService.createAndSaveNonce()
-    this.document.location.href = `https://www.bungie.net/en/OAuth/Authorize?response_type=code&client_id=${
-      environment.bungie.clientId
-    }&state=${localStorage.getItem('bungie-nonce')}`
+    const nonce = localStorage.getItem('bungie-nonce')
+    const redirectUri = encodeURIComponent(environment.bungie.redirect)
+    this.document.location.href = `https://www.bungie.net/en/OAuth/Authorize?response_type=code&client_id=${environment.bungie.clientId}&state=${nonce}&redirect_uri=${redirectUri}`
   }
 
   logout() {

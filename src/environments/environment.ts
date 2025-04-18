@@ -5,6 +5,6 @@ export const environment = {
     authUrl: 'https://www.bungie.net/en/OAuth/Authorize',
     clientId: '',
     clientSecret: '',
-    redirect: 'https://localhost:4200',
+    redirect: 'https://splashbear.github.io/Destiny-Journal',
   },
 }
