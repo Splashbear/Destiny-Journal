@@ -36,7 +36,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
   private membershipDataForCurrentUser$ = new BehaviorSubject<ServerResponse<UserMembershipData> | undefined>(undefined);
   private accountResponse$ = new BehaviorSubject<ServerResponse<DestinyHistoricalStatsAccountResult>[]>([]);
   public displayName = '';
-  public characters$: Observable<DestinyCharacterComponent[]> = of([]);
+  public characters$: Observable<DestinyCharacterComponent[]>;
   public activities: destiny.Activity[] = [];
   public loading = false;
   public errorStatus = '';
@@ -48,7 +48,9 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     private bungieAuth: BungieAuthService,
     private manifestService: ManifestService,
     private bungieQueue: BungieQueueService
-  ) {}
+  ) {
+    this.characters$ = of([]);
+  }
 
   ngOnInit() {
     this.loadActivitiesForDate(new Date());
@@ -64,8 +66,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
                 this.membershipDataForCurrentUser$.next(response);
               }
             };
-            const sub = this.bungieQueue.addToQueue('getMembershipDataForCurrentUser', action, callback).subscribe();
-            this.subs.push(sub);
+            this.bungieQueue.addToQueue('getMembershipDataForCurrentUser', action, callback).subscribe();
           }
         })
       )
@@ -82,36 +83,33 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
             userMembershipData.Response.destinyMemberships.map((destinyMembership) => {
               const { membershipId, membershipType } = destinyMembership;
               const action = getHistoricalStatsForAccount;
-              const callback = (response: ServerResponse<DestinyHistoricalStatsAccountResult>) => {
+              const params: GetHistoricalStatsForAccountParams = {
+                destinyMembershipId: membershipId,
+                membershipType,
+                groups: [DestinyStatsGroupType.General],
+              };
+              return this.bungieQueue.addToQueue('getHistoricalStats', action, (response: ServerResponse<DestinyHistoricalStatsAccountResult>) => {
                 if (response?.Response?.characters?.length > 0) {
                   return forkJoin(
                     response.Response.characters.map((character) => {
                       const { characterId } = character;
-                      const actionB = getCharacter;
-                      const callbackB = (res: ServerResponse<DestinyCharacterResponse>) => {
-                        if (res?.Response?.character) {
-                          return res.Response.character;
-                        }
-                        return null;
-                      };
                       const paramsB: GetCharacterParams = {
                         characterId,
                         destinyMembershipId: membershipId,
                         membershipType,
                         components: [DestinyComponentType.Characters],
                       };
-                      return this.bungieQueue.addToQueue('getCharacter', actionB, callbackB, paramsB);
+                      return this.bungieQueue.addToQueue('getCharacter', getCharacter, (res: ServerResponse<DestinyCharacterResponse>) => {
+                        if (res?.Response?.character) {
+                          return res.Response.character;
+                        }
+                        return null;
+                      }, paramsB);
                     })
                   );
                 }
                 return of([]);
-              };
-              const params: GetHistoricalStatsForAccountParams = {
-                destinyMembershipId: membershipId,
-                membershipType,
-                groups: [DestinyStatsGroupType.General],
-              };
-              return this.bungieQueue.addToQueue('getHistoricalStats', action, callback, params);
+              }, params);
             })
           );
         })
@@ -179,7 +177,8 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     this.subs.push(sub);
   }
 
-  private isSameDay(date1: Date, date2: Date): boolean {
+  private isSameDay(date1: Date, date2: Date | null): boolean {
+    if (!date2) return false;
     return (
       date1.getFullYear() === date2.getFullYear() &&
       date1.getMonth() === date2.getMonth() &&
