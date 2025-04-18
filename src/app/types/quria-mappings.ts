@@ -1,7 +1,8 @@
 import { 
   BungieMembershipType, 
   DestinyActivityModeType,
-  DestinyStatsGroupType 
+  DestinyStatsGroupType,
+  APIResponse
 } from 'quria';
 
 export interface QuriaApiParams {
@@ -25,7 +26,16 @@ export interface QuriaStatsParams {
 }
 
 // Convert BungieMembershipType to the format expected by the API
-export const convertMembershipType = (type: BungieMembershipType): BungieMembershipType => {
-  // The API expects the raw enum value
-  return type;
+export const convertMembershipType = (type: BungieMembershipType): string => {
+  return type.toString();
+};
+
+// Wrapper function for Quria API calls
+export const callQuriaApi = async <T>(
+  apiCall: (membershipId: string, membershipType: string, ...args: any[]) => Promise<APIResponse<T>>,
+  membershipId: string,
+  membershipType: BungieMembershipType,
+  ...args: any[]
+): Promise<APIResponse<T>> => {
+  return apiCall(membershipId, convertMembershipType(membershipType), ...args);
 }; 

@@ -18,7 +18,8 @@ import {
   QuriaProfileComponents,
   QuriaActivityParams,
   QuriaStatsParams,
-  convertMembershipType
+  convertMembershipType,
+  callQuriaApi
 } from '../types/quria-mappings';
 import { BungieApiError, BungieErrorCode } from '../types/bungie-errors';
 import { BehaviorSubject, forkJoin, Observable, of, Subscription, from } from 'rxjs';
@@ -123,14 +124,17 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
         components: [200] // ComponentType.Characters
       };
       
-      const response = await this.quria.destiny2.GetProfile(
+      const response = await callQuriaApi<{ characters: { data: { characters: DestinyCharacterComponent[] } } }>(
+        this.quria.destiny2.GetProfile.bind(this.quria.destiny2),
         params.membershipId,
-        convertMembershipType(params.membershipType),
+        params.membershipType,
         components
       );
       
-      const characters = response?.Response?.characters?.data?.characters || [];
-      return Array.isArray(characters) ? characters : [];
+      if (response?.Response?.characters?.data?.characters) {
+        return response.Response.characters.data.characters;
+      }
+      return [];
     } catch (error) {
       console.error('Error fetching characters:', error);
       return [];
@@ -177,9 +181,14 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
         page: params.page
       };
       
-      const response = await this.quria.destiny2.GetActivityHistory(
+      interface ActivityHistoryResponse {
+        activities: QuriaHistoricalStatsPeriodGroup[];
+      }
+
+      const response = await callQuriaApi<ActivityHistoryResponse>(
+        this.quria.destiny2.GetActivityHistory.bind(this.quria.destiny2),
         params.destinyMembershipId,
-        params.membershipType.toString(),
+        params.membershipType,
         params.characterId,
         activityParams
       );
@@ -193,28 +202,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
         );
       }
 
-      const activities = response?.Response?.activities || [];
-      return activities.map(activity => ({
-        period: activity.period,
-        activityDetails: {
-          mode: activity.activityDetails.mode,
-          directorActivityHash: activity.activityDetails.directorActivityHash,
-          referenceId: activity.activityDetails.referenceId,
-          instanceId: activity.activityDetails.instanceId,
-          isPrivate: activity.activityDetails.isPrivate
-        },
-        values: {
-          timePlayedSeconds: activity.values.timePlayedSeconds,
-          kills: activity.values.kills,
-          deaths: activity.values.deaths,
-          assists: activity.values.assists,
-          killsDeathsRatio: activity.values.killsDeathsRatio
-        },
-        activityType: this.getActivityType(activity),
-        duration: this.getActivityDuration(activity),
-        year: new Date(activity.period).getFullYear(),
-        destinyVersion: this.getDestinyVersion(activity)
-      }));
+      return response?.Response?.activities || [];
     });
   }
 
@@ -224,9 +212,14 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
         groups: params.groups
       };
       
-      const response = await this.quria.destiny2.GetHistoricalStatsForAccount(
+      interface HistoricalStatsResponse {
+        characters: DestinyHistoricalStatsAccountResult[];
+      }
+
+      const response = await callQuriaApi<HistoricalStatsResponse>(
+        this.quria.destiny2.GetHistoricalStatsForAccount.bind(this.quria.destiny2),
         params.destinyMembershipId,
-        convertMembershipType(params.membershipType),
+        params.membershipType,
         statsParams
       );
 
@@ -299,14 +292,34 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
       const params: QuriaActivityHistoryParams = {
         characterId: characters[0].characterId,
         destinyMembershipId: membership.membershipId,
-        membershipType: membership.membershipType,
+        membershipType: membership.membershipType as BungieMembershipType,
         mode: this.activityTypeFilter.value?.[0] || DestinyActivityModeType.None,
         count: 25,
         page: 0
       };
 
       this.getActivityHistory(params).subscribe((activities) => {
-        this.activities = activities;
+        this.activities = activities.map(activity => ({
+          period: activity.period,
+          activityDetails: {
+            mode: activity.activityDetails.mode,
+            directorActivityHash: activity.activityDetails.directorActivityHash,
+            referenceId: activity.activityDetails.referenceId,
+            instanceId: activity.activityDetails.instanceId,
+            isPrivate: activity.activityDetails.isPrivate
+          },
+          values: {
+            timePlayedSeconds: activity.values.timePlayedSeconds,
+            kills: activity.values.kills,
+            deaths: activity.values.deaths,
+            assists: activity.values.assists,
+            killsDeathsRatio: activity.values.killsDeathsRatio
+          },
+          activityType: this.getActivityType(activity),
+          duration: this.getActivityDuration(activity),
+          year: new Date(activity.period).getFullYear(),
+          destinyVersion: this.getDestinyVersion(activity)
+        }));
         this.loading = false;
       });
     } catch (error) {

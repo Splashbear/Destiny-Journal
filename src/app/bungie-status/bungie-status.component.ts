@@ -3,6 +3,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core'
 import { ServerResponse } from 'bungie-api-ts/destiny2'
 import { BehaviorSubject, Subscription, throwError as observableThrowError } from 'rxjs'
 import { catchError } from 'rxjs/operators'
+import { CommonModule } from '@angular/common'
+import { MatCardModule } from '@angular/material/card'
 
 interface BungieAlert {
   type: string
@@ -14,6 +16,8 @@ interface BungieAlert {
   selector: 'app-bungie-status',
   templateUrl: './bungie-status.component.html',
   styleUrls: ['./bungie-status.component.scss'],
+  standalone: true,
+  imports: [CommonModule, MatCardModule]
 })
 export class BungieStatusComponent implements OnInit, OnDestroy {
   public bungieSub: Subscription

@@ -14,6 +14,16 @@ import { catchError, map } from 'rxjs/operators'
 import { openDB, IDBPDatabase } from 'idb'
 import { BungieQueueService } from '../services/queue.service'
 
+// Create a wrapper for the Bungie API HTTP client
+const createBungieHttpClient = (http: HttpClient) => {
+  return async (config: { url: string; method: string; headers?: Record<string, string> }) => {
+    const response = await http.get(config.url, {
+      headers: config.headers
+    }).toPromise();
+    return response;
+  };
+};
+
 interface ManifestDatabase {
   Activity: { [key: string]: DestinyActivityDefinition }
   ActivityMode: { [key: string]: DestinyActivityModeDefinition }
@@ -93,7 +103,7 @@ export class ManifestService {
     }
 
     this.bungieQueue.addToQueue('getDestinyManifest', async () => {
-      const response = await action()
+      const response = await action(createBungieHttpClient(this.http))
       return callback(response)
     }).subscribe()
   }
