@@ -167,11 +167,20 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
       if (response?.Response?.activities) {
         const activities = await Promise.all(
           response.Response.activities
-            .filter((activity) => this.isSameDay(new Date(activity.period), this.date.value))
+            .filter((activity) => {
+              const activityDate = new Date(activity.period);
+              const selectedDate = this.date.value;
+              if (!selectedDate) return false;
+              return (
+                activityDate.getMonth() === selectedDate.getMonth() &&
+                activityDate.getDate() === selectedDate.getDate()
+              );
+            })
             .map(async (activity: DestinyHistoricalStatsPeriodGroup) => ({
               ...activity,
               activityType: await this.getActivityType(activity),
               duration: this.getActivityDuration(activity),
+              year: new Date(activity.period).getFullYear(),
             }))
         );
         this.activities = activities as Activity[];
@@ -209,10 +218,16 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
   }
 
   getActivityTypes(): string[] {
-    return [...new Set(this.activities.map((activity) => activity.activityType))].sort();
+    return [...new Set(this.activities.map(activity => activity.activityType))];
   }
 
-  getActivitiesByType(type: string): Activity[] {
-    return this.activities.filter((activity) => activity.activityType === type);
+  getYears(): number[] {
+    return [...new Set(this.activities.map(activity => activity.year))].sort((a, b) => b - a);
+  }
+
+  getActivitiesByTypeAndYear(type: string, year: number): Activity[] {
+    return this.activities.filter(activity => 
+      activity.activityType === type && activity.year === year
+    );
   }
 } 

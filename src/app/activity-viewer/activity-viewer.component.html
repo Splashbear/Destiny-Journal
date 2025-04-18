@@ -22,26 +22,29 @@
   <div *ngIf="!loading && !errorStatus && activities.length > 0" class="activities">
     <div *ngFor="let type of getActivityTypes()" class="activity-type">
       <h3>{{ type }}</h3>
-      <div *ngFor="let activity of getActivitiesByType(type)" class="activity">
-        <div class="activity-header">
-          <span class="duration">{{ activity.duration }}</span>
-        </div>
-        <div class="activity-details">
-          <div *ngIf="activity.values.kills" class="stat">
-            <span class="label">Kills:</span>
-            <span class="value">{{ activity.values.kills.basic.value }}</span>
+      <div *ngFor="let year of getYears()" class="activity-year">
+        <h4>{{ year }}</h4>
+        <div *ngFor="let activity of getActivitiesByTypeAndYear(type, year)" class="activity">
+          <div class="activity-header">
+            <span class="duration">{{ activity.duration }}</span>
           </div>
-          <div *ngIf="activity.values.deaths" class="stat">
-            <span class="label">Deaths:</span>
-            <span class="value">{{ activity.values.deaths.basic.value }}</span>
-          </div>
-          <div *ngIf="activity.values.assists" class="stat">
-            <span class="label">Assists:</span>
-            <span class="value">{{ activity.values.assists.basic.value }}</span>
-          </div>
-          <div *ngIf="activity.values.killsDeathsRatio" class="stat">
-            <span class="label">K/D:</span>
-            <span class="value">{{ activity.values.killsDeathsRatio.basic.value | number:'1.2-2' }}</span>
+          <div class="activity-details">
+            <div *ngIf="activity.values.kills" class="stat">
+              <span class="label">Kills:</span>
+              <span class="value">{{ activity.values.kills.basic.value }}</span>
+            </div>
+            <div *ngIf="activity.values.deaths" class="stat">
+              <span class="label">Deaths:</span>
+              <span class="value">{{ activity.values.deaths.basic.value }}</span>
+            </div>
+            <div *ngIf="activity.values.assists" class="stat">
+              <span class="label">Assists:</span>
+              <span class="value">{{ activity.values.assists.basic.value }}</span>
+            </div>
+            <div *ngIf="activity.values.killsDeathsRatio" class="stat">
+              <span class="label">K/D:</span>
+              <span class="value">{{ activity.values.killsDeathsRatio.basic.value | number:'1.2-2' }}</span>
+            </div>
           </div>
         </div>
       </div>

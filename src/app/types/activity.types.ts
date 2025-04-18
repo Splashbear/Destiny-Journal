@@ -8,6 +8,7 @@ import {
 export interface Activity extends DestinyHistoricalStatsPeriodGroup {
   activityType: string;
   duration: string;
+  year: number;
   activityDetails: DestinyHistoricalStatsActivity;
   values: {
     [key: string]: DestinyHistoricalStatsValue;
