@@ -14,6 +14,7 @@ import {
   DestinyCharacterResponse,
   DestinyComponentType,
   DestinyHistoricalStatsAccountResult,
+  DestinyHistoricalStatsPeriodGroup,
   DestinyStatsGroupType,
   getActivityHistory,
   GetActivityHistoryParams,
@@ -163,11 +164,11 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
       if (response?.Response?.activities) {
         this.activities = response.Response.activities
           .filter((activity) => this.isSameDay(new Date(activity.period), this.date.value))
-          .map((activity) => ({
+          .map((activity: DestinyHistoricalStatsPeriodGroup) => ({
             ...activity,
             activityType: this.getActivityType(activity),
             duration: this.getActivityDuration(activity),
-          }));
+          })) as destiny.Activity[];
       }
       this.loading = false;
     };
@@ -182,11 +183,11 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     );
   }
 
-  getActivityType(activity: destiny.Activity): string {
+  getActivityType(activity: DestinyHistoricalStatsPeriodGroup): string {
     return activity.activityDetails.mode.toString();
   }
 
-  getActivityDuration(activity: destiny.Activity): string {
+  getActivityDuration(activity: DestinyHistoricalStatsPeriodGroup): string {
     const start = new Date(activity.period);
     const end = new Date(activity.period);
     end.setSeconds(end.getSeconds() + activity.values.timePlayedSeconds.basic.value);

@@ -1,20 +1,18 @@
+import { DestinyHistoricalStatsActivity, DestinyHistoricalStatsPeriodGroup, DestinyHistoricalStatsValue } from 'bungie-api-ts/destiny2';
+
 export namespace destiny {
-  export interface Activity {
-    period: string;
-    activityDetails: {
-      mode: number;
-      [key: string]: any;
-    };
+  export interface Activity extends DestinyHistoricalStatsPeriodGroup {
+    activityType?: string;
+    duration?: string;
+    activityDetails: DestinyHistoricalStatsActivity;
     values: {
+      [key: string]: DestinyHistoricalStatsValue;
+    } & {
       timePlayedSeconds: {
         basic: {
           value: number;
         };
       };
-      [key: string]: any;
     };
-    activityType?: string;
-    duration?: string;
-    [key: string]: any;
   }
 } 

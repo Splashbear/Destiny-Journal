@@ -28,14 +28,14 @@ export class ManifestService {
   newManifest$ = new Subject()
   defs: {
     Activity?: {
-      dbTable: any[]
-      get(hash: number): DestinyActivityDefinition
-    }
+      dbTable: Record<string, DestinyActivityDefinition>;
+      get(hash: number): DestinyActivityDefinition;
+    };
     ActivityMode?: {
-      dbTable: any[]
-      get(modeType: number): DestinyActivityModeDefinition
-    }
-  }
+      dbTable: Record<string, DestinyActivityModeDefinition>;
+      get(modeType: number): DestinyActivityModeDefinition;
+    };
+  } = {}
 
   private localStorageKey = 'd2-manifest-version'
   private idbKey = 'd2-manifest'

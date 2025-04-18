@@ -5,6 +5,15 @@ import { ServerResponse } from 'bungie-api-ts/common'
 import { BehaviorSubject, Observable } from 'rxjs'
 import { debounceTime, take } from 'rxjs/operators'
 
+type BungieAction =
+  | 'getGlobalAlerts'
+  | 'getDestinyManifest'
+  | 'getMembershipDataForCurrentUser'
+  | 'getMembershipDataById'
+  | 'getProfile'
+  | 'getActivityHistory'
+  | 'getPostGameCarnageReport'
+
 interface QueueItem<T = any> {
   actionFunction: (config: any, params: any) => Promise<ServerResponse<T>>
   callback: (response: ServerResponse<T>) => void
@@ -15,9 +24,7 @@ interface QueueItem<T = any> {
   providedIn: 'root',
 })
 export class BungieQueueService {
-  queue$ = new BehaviorSubject<{
-    [action: string]: QueueItem[]
-  }>({
+  queue$ = new BehaviorSubject<Record<BungieAction, QueueItem[]>>({
     getGlobalAlerts: [],
     getDestinyManifest: [],
     getMembershipDataForCurrentUser: [],
@@ -27,7 +34,7 @@ export class BungieQueueService {
     getPostGameCarnageReport: [],
   })
 
-  actionPriority = [
+  actionPriority: BungieAction[] = [
     'getGlobalAlerts',
     'getDestinyManifest',
     'getMembershipDataForCurrentUser',
@@ -37,9 +44,7 @@ export class BungieQueueService {
     'getPostGameCarnageReport',
   ]
 
-  queueCount: {
-    [queue: string]: QueueCount
-  } = {
+  queueCount: Record<BungieAction, QueueCount> = {
     getGlobalAlerts: {
       queued: 0,
       completed: 0,
@@ -127,7 +132,7 @@ export class BungieQueueService {
               this.queueCount[action].percentage = Math.round(
                 (this.queueCount[action].completed /
                   (this.queueCount[action].completed + this.queueCount[action].queued)) *
-                  100
+                100
               )
               const newQueue = [...queue]
               newQueue.shift()
@@ -151,7 +156,7 @@ export class BungieQueueService {
   }
 
   addToQueue<T>(
-    action: string,
+    action: BungieAction,
     actionFunction: (config: any, params: any) => Promise<ServerResponse<T>>,
     callback: (response: ServerResponse<T>) => void,
     params?: any
@@ -176,7 +181,7 @@ export class BungieQueueService {
     })
   }
 
-  updateQueue(queueCount: Partial<Record<string, QueueCount>>): void {
+  updateQueue(queueCount: Partial<Record<BungieAction, QueueCount>>): void {
     this.queueCount = {
       ...this.queueCount,
       ...queueCount,
