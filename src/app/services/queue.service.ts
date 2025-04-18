@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { GetPostGameCarnageReportParams } from 'bungie-api-ts/destiny2'
 import { ServerResponse } from 'bungie-api-ts/common'
-import { BehaviorSubject, Observable } from 'rxjs'
+import { BehaviorSubject, Observable, Subscription } from 'rxjs'
 import { debounceTime, take } from 'rxjs/operators'
 
 type BungieAction =
@@ -13,6 +13,8 @@ type BungieAction =
   | 'getProfile'
   | 'getActivityHistory'
   | 'getPostGameCarnageReport'
+  | 'getHistoricalStats'
+  | 'getCharacter'
 
 interface QueueItem<T = any> {
   actionFunction: (config: any, params: any) => Promise<ServerResponse<T>>
@@ -32,6 +34,8 @@ export class BungieQueueService {
     getProfile: [],
     getActivityHistory: [],
     getPostGameCarnageReport: [],
+    getHistoricalStats: [],
+    getCharacter: [],
   })
 
   actionPriority: BungieAction[] = [
@@ -42,6 +46,8 @@ export class BungieQueueService {
     'getProfile',
     'getActivityHistory',
     'getPostGameCarnageReport',
+    'getHistoricalStats',
+    'getCharacter',
   ]
 
   queueCount: Record<BungieAction, QueueCount> = {
@@ -88,6 +94,20 @@ export class BungieQueueService {
       color: 'primary',
     },
     getPostGameCarnageReport: {
+      queued: 0,
+      completed: 0,
+      errors: 0,
+      percentage: 0,
+      color: 'primary',
+    },
+    getHistoricalStats: {
+      queued: 0,
+      completed: 0,
+      errors: 0,
+      percentage: 0,
+      color: 'primary',
+    },
+    getCharacter: {
       queued: 0,
       completed: 0,
       errors: 0,

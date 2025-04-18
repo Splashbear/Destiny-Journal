@@ -62,7 +62,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
             const callback = (response: ServerResponse<UserMembershipData>) => {
               this.membershipDataForCurrentUser$.next(response);
             };
-            this.bungieQueue.addToQueue('getProfile', action, callback).subscribe();
+            this.bungieQueue.addToQueue('getMembershipDataForCurrentUser', action, callback).subscribe();
           }
         })
       )
