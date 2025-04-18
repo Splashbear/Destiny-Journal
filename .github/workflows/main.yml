@@ -18,15 +18,15 @@ jobs:
         with:
           node-version: '18'
       - name: Install dependencies
-        run: yarn
+        run: npm ci
       - name: Build
-        run: yarn run build:ghp
+        run: npm run build:ghp
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist'
+          path: './dist/destiny-journal'
   deploy:
     environment:
       name: github-pages
