@@ -1,10 +1,11 @@
+// Remove the unnecessary import
+// import { MatBottomSheetModule } from '@angular/material/bottom-sheet'
+
 import { CommonModule } from '@angular/common'
 import { Component } from '@angular/core'
-import { MatBottomSheet, MatBottomSheetModule, MatBottomSheetRef } from '@angular/material/bottom-sheet'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
-
 @Component({
   selector: 'destiny-webring',
   templateUrl: './webring.component.html',

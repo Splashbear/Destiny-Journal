@@ -1,5 +1,7 @@
+// Remove the unnecessary import
+// import { destiny } from '../scrubland.typings'
+
 import { Pipe, PipeTransform } from '@angular/core'
-import { destiny } from '../scrubland.typings'
 
 @Pipe({
   name: 'addTime',
