@@ -12,7 +12,13 @@ export interface Activity extends DestinyHistoricalStatsPeriodGroup {
   duration: string;
   year: number;
   destinyVersion: DestinyVersion;
-  activityDetails: DestinyHistoricalStatsActivity;
+  activityDetails: DestinyHistoricalStatsActivity & {
+    mode?: DestinyActivityModeType;
+    directorActivityHash?: number;
+    referenceId?: number;
+    instanceId?: string;
+    isPrivate?: boolean;
+  };
   values: {
     [key: string]: DestinyHistoricalStatsValue;
     timePlayedSeconds: DestinyHistoricalStatsValue;
@@ -20,6 +26,8 @@ export interface Activity extends DestinyHistoricalStatsPeriodGroup {
     deaths?: DestinyHistoricalStatsValue;
     assists?: DestinyHistoricalStatsValue;
     killsDeathsRatio?: DestinyHistoricalStatsValue;
+    standing?: DestinyHistoricalStatsValue;
+    completed?: DestinyHistoricalStatsValue;
   };
 }
 
@@ -27,4 +35,9 @@ export interface ActivityMode {
   modeType: DestinyActivityModeType;
   name: string;
   description: string;
+  icon?: string;
+  pgcrImage?: string;
+  category?: string;
+  isD1Compatible?: boolean;
+  isD2Compatible?: boolean;
 } 

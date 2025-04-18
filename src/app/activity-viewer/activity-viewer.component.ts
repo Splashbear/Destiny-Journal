@@ -29,9 +29,24 @@ import { getMembershipDataForCurrentUser, UserMembershipData } from 'bungie-api-
 @Component({
   selector: 'app-activity-viewer',
   templateUrl: './activity-viewer.component.html',
-  styleUrls: ['./activity-viewer.component.css']
+  styleUrls: ['./activity-viewer.component.scss']
 })
 export class ActivityViewerComponent implements OnInit, OnDestroy {
+  private readonly DESTINY1_RELEASE_DATE = new Date('2014-09-09');
+  private readonly DESTINY2_RELEASE_DATE = new Date('2017-09-06');
+  private readonly D1_ACTIVITY_MODES = [
+    DestinyActivityModeType.AllPvP,
+    DestinyActivityModeType.AllPvE,
+    DestinyActivityModeType.Raid
+  ];
+  private readonly D2_ACTIVITY_MODES = [
+    DestinyActivityModeType.AllPvP,
+    DestinyActivityModeType.AllPvE,
+    DestinyActivityModeType.Raid,
+    DestinyActivityModeType.Dungeon,
+    DestinyActivityModeType.Social
+  ];
+
   private subs: Subscription[] = [];
   private membershipDataForCurrentUser$ = new BehaviorSubject<ServerResponse<UserMembershipData> | undefined>(undefined);
   private accountResponse$ = new BehaviorSubject<ServerResponse<DestinyHistoricalStatsAccountResult>[]>([]);
@@ -147,10 +162,9 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // Get the current year and Destiny's release year (2014)
+      // Get the current year and Destiny's release year
       const currentYear = new Date().getFullYear();
-      const destinyReleaseYear = 2014;
-      const destiny2ReleaseDate = new Date('2017-09-06');
+      const destinyReleaseYear = this.DESTINY1_RELEASE_DATE.getFullYear();
 
       // Create a date object for the selected date
       const selectedDate = new Date(date);
@@ -161,37 +175,42 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
         (_, i) => currentYear - i
       );
 
-      // For each membership and year, fetch activities for both Destiny 1 and 2
+      // For each membership and year, fetch activities
       userMembershipData.Response.destinyMemberships.forEach((destinyMembership) => {
         const { membershipId, membershipType } = destinyMembership;
         
         years.forEach(year => {
-          // Create a date object for the selected date in each year
           const yearDate = new Date(date);
           yearDate.setFullYear(year);
 
-          // Fetch Destiny 1 activities for all years (Destiny 1 is still active)
-          const d1Params: GetActivityHistoryParams = {
-            characterId: '0',
-            destinyMembershipId: membershipId,
-            membershipType,
-            mode: DestinyActivityModeType.AllPvP,
-            count: 250,
-            page: 0,
-          };
-          this.addHistorySub(d1Params, yearDate, 'Destiny1');
+          // Fetch Destiny 1 activities if the date is between D1 release and D2 release
+          if (yearDate >= this.DESTINY1_RELEASE_DATE) {
+            this.D1_ACTIVITY_MODES.forEach(mode => {
+              const d1Params: GetActivityHistoryParams = {
+                characterId: '0',
+                destinyMembershipId: membershipId,
+                membershipType,
+                mode,
+                count: 250,
+                page: 0,
+              };
+              this.addHistorySub(d1Params, yearDate, 'Destiny1');
+            });
+          }
 
-          // Only fetch Destiny 2 activities if the date is after Destiny 2's release
-          if (yearDate >= destiny2ReleaseDate) {
-            const d2Params: GetActivityHistoryParams = {
-              characterId: '0',
-              destinyMembershipId: membershipId,
-              membershipType,
-              mode: DestinyActivityModeType.AllPvP,
-              count: 250,
-              page: 0,
-            };
-            this.addHistorySub(d2Params, yearDate, 'Destiny2');
+          // Fetch Destiny 2 activities if the date is after D2 release
+          if (yearDate >= this.DESTINY2_RELEASE_DATE) {
+            this.D2_ACTIVITY_MODES.forEach(mode => {
+              const d2Params: GetActivityHistoryParams = {
+                characterId: '0',
+                destinyMembershipId: membershipId,
+                membershipType,
+                mode,
+                count: 250,
+                page: 0,
+              };
+              this.addHistorySub(d2Params, yearDate, 'Destiny2');
+            });
           }
         });
       });
@@ -212,15 +231,32 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
                 activityDate.getFullYear() === targetDate.getFullYear()
               );
             })
-            .map(async (activity: DestinyHistoricalStatsPeriodGroup) => ({
-              ...activity,
-              activityType: await this.getActivityType(activity),
-              duration: this.getActivityDuration(activity),
-              year: new Date(activity.period).getFullYear(),
-              destinyVersion,
-            }))
+            .map(async (activity: DestinyHistoricalStatsPeriodGroup) => {
+              const enrichedActivity: Activity = {
+                ...activity,
+                activityType: await this.getActivityType(activity),
+                duration: this.getActivityDuration(activity),
+                year: new Date(activity.period).getFullYear(),
+                destinyVersion,
+                activityDetails: {
+                  ...activity.activityDetails,
+                  mode: params.mode
+                },
+                values: {
+                  ...activity.values,
+                  timePlayedSeconds: activity.values.timePlayedSeconds
+                }
+              };
+              return enrichedActivity;
+            })
         );
-        this.activities = [...this.activities, ...activities as Activity[]];
+        
+        // Sort activities by date before adding them
+        const sortedActivities = activities.sort((a, b) => 
+          new Date(a.period).getTime() - new Date(b.period).getTime()
+        );
+        
+        this.activities = [...this.activities, ...sortedActivities];
       }
       this.loading = false;
       return response;
@@ -260,7 +296,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
 
   getYears(): number[] {
     const currentYear = new Date().getFullYear();
-    const destinyReleaseYear = 2014;
+    const destinyReleaseYear = this.DESTINY1_RELEASE_DATE.getFullYear();
     return Array.from(
       { length: currentYear - destinyReleaseYear + 1 },
       (_, i) => currentYear - i
