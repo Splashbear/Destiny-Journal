@@ -2,7 +2,6 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDatepickerInputEvent } from '@angular/material/datepicker';
 import { ActivatedRoute } from '@angular/router';
-import { BungieAuthService } from '../bungie-auth/bungie-auth.service';
 import { ManifestService } from '../manifest/manifest.service';
 import { BungieQueueService } from '../services/queue.service';
 import { DestinyVersion } from '../types/activity.types';
@@ -46,6 +45,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-activity-viewer',
@@ -99,12 +99,12 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
-    private bungieAuthService: BungieAuthService,
     private manifestService: ManifestService,
-    private bungieQueueService: BungieQueueService
+    private bungieQueueService: BungieQueueService,
+    private http: HttpClient
   ) {
     this.quria = new Quria({
-      API_KEY: this.bungieAuthService.getApiKey()
+      API_KEY: 'YOUR_API_KEY' // Replace with your actual API key
     });
     this.characters$ = this.membershipData$.pipe(
       switchMap((data) => {
@@ -164,17 +164,34 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     this.bungieQueueService.addToQueue('searchDestinyPlayer', async () => {
-      const response = await this.quria.user.GetMembershipDataForCurrentUser();
-      if (response?.Response) {
-        this.membershipData$.next(response.Response);
-        this.displayName = this.username;
-        this.membershipType = response.Response.destinyMemberships[0]?.membershipType;
-      } else {
+      try {
+        interface SearchResponse {
+          Response: UserInfoCard[];
+          ErrorCode: number;
+          ErrorStatus: string;
+          Message: string;
+          MessageData: { [key: string]: string };
+        }
+
+        const response = await this.http.get<SearchResponse>(`https://www.bungie.net/Platform/Destiny2/SearchDestinyPlayer/-1/${encodeURIComponent(this.username)}/`).toPromise();
+        if (response?.Response?.length > 0) {
+          const membership = response.Response[0];
+          this.membershipData$.next({
+            destinyMemberships: [membership]
+          } as UserMembershipData);
+          this.displayName = membership.displayName;
+          this.membershipType = membership.membershipType;
+          this.loadActivities();
+        } else {
+          this.errorStatus = 'Error';
+          this.errorMessage = 'User not found';
+        }
+      } catch (error) {
         this.errorStatus = 'Error';
-        this.errorMessage = 'User not found';
+        this.errorMessage = 'Failed to search for user';
+        console.error('Error searching for user:', error);
       }
       this.loading = false;
-      return response;
     }).subscribe();
   }
 
