@@ -6,7 +6,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "build:ghp": "ng build --configuration production --base-href /Destiny-Journal/ && node -e \"require('fs').copyFileSync('./dist/index.html', './dist/404.html')\"",
+    "build:ghp": "ng build --configuration production --base-href /Destiny-Journal/ && if [ -f './dist/destiny-journal/index.html' ]; then node -e \"require('fs').copyFileSync('./dist/destiny-journal/index.html', './dist/destiny-journal/404.html')\"; else echo 'index.html not found in ./dist/destiny-journal'; exit 1; fi",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
