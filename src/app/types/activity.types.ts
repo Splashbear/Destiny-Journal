@@ -12,6 +12,10 @@ export interface Activity extends DestinyHistoricalStatsPeriodGroup {
   values: {
     [key: string]: DestinyHistoricalStatsValue;
     timePlayedSeconds: DestinyHistoricalStatsValue;
+    kills?: DestinyHistoricalStatsValue;
+    deaths?: DestinyHistoricalStatsValue;
+    assists?: DestinyHistoricalStatsValue;
+    killsDeathsRatio?: DestinyHistoricalStatsValue;
   };
 }
 

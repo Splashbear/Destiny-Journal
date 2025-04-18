@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { GetPostGameCarnageReportParams } from 'bungie-api-ts/destiny2'
 import { ServerResponse } from 'bungie-api-ts/common'
-import { BehaviorSubject, Observable, Subscription } from 'rxjs'
+import { BehaviorSubject, Observable, Subscription, Subject } from 'rxjs'
 import { debounceTime, take } from 'rxjs/operators'
 
 type BungieAction =
@@ -26,6 +26,8 @@ interface QueueItem<T = any> {
   providedIn: 'root',
 })
 export class BungieQueueService {
+  private queue: { [key: string]: Subject<any> } = {}
+
   queue$ = new BehaviorSubject<Record<BungieAction, QueueItem[]>>({
     getGlobalAlerts: [],
     getDestinyManifest: [],
@@ -175,30 +177,27 @@ export class BungieQueueService {
     })
   }
 
-  addToQueue<T>(
-    action: BungieAction,
-    actionFunction: (config: any, params: any) => Promise<ServerResponse<T>>,
-    callback: (response: ServerResponse<T>) => void,
-    params?: any
-  ): Observable<ServerResponse<T>> {
-    const queue = this.queue$.value[action]
-    if (!queue) {
-      throw new Error(`Unknown action: ${action}`)
+  addToQueue<T, R>(
+    key: string,
+    action: (...args: any[]) => Promise<ServerResponse<T>>,
+    callback: (response: ServerResponse<T>) => Promise<R> | R,
+    ...args: any[]
+  ): Observable<R> {
+    if (!this.queue[key]) {
+      this.queue[key] = new Subject<R>()
+      action(...args)
+        .then(async (response: ServerResponse<T>) => {
+          const result = await callback(response)
+          this.queue[key].next(result)
+          this.queue[key].complete()
+          delete this.queue[key]
+        })
+        .catch((error) => {
+          this.queue[key].error(error)
+          delete this.queue[key]
+        })
     }
-    const newQueue = [...queue, { actionFunction, callback, params }]
-    this.queue$.next({
-      ...this.queue$.value,
-      [action]: newQueue,
-    })
-    return new Observable<ServerResponse<T>>((subscriber) => {
-      const item = newQueue[newQueue.length - 1]
-      const originalCallback = item.callback
-      item.callback = (response) => {
-        originalCallback(response)
-        subscriber.next(response)
-        subscriber.complete()
-      }
-    })
+    return this.queue[key].asObservable()
   }
 
   updateQueue(queueCount: Partial<Record<BungieAction, QueueCount>>): void {

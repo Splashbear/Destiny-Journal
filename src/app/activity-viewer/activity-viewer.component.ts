@@ -4,7 +4,7 @@ import { MatDatepickerInputEvent } from '@angular/material/datepicker';
 import { BungieAuthService } from '../bungie-auth/bungie-auth.service';
 import { ManifestService } from '../manifest/manifest.service';
 import { BungieQueueService } from '../services/queue.service';
-import { Activity, ActivityMode } from '../types/activity.types';
+import { Activity } from '../types/activity.types';
 import { BehaviorSubject, EMPTY, forkJoin, Observable, of, Subscription } from 'rxjs';
 import { distinctUntilChanged, map, switchMap, take, tap } from 'rxjs/operators';
 import { 
@@ -29,7 +29,7 @@ import { getMembershipDataForCurrentUser, UserMembershipData } from 'bungie-api-
 @Component({
   selector: 'app-activity-viewer',
   templateUrl: './activity-viewer.component.html',
-  styleUrls: ['./activity-viewer.component.scss']
+  styleUrls: ['./activity-viewer.component.css']
 })
 export class ActivityViewerComponent implements OnInit, OnDestroy {
   private subs: Subscription[] = [];
@@ -65,6 +65,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
               if (response?.Response) {
                 this.membershipDataForCurrentUser$.next(response);
               }
+              return response;
             };
             const sub = this.bungieQueue.addToQueue('getMembershipDataForCurrentUser', action, callback).subscribe();
             this.subs.push(sub);
@@ -89,10 +90,10 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
                 membershipType,
                 groups: [DestinyStatsGroupType.General],
               };
-              return this.bungieQueue.addToQueue('getHistoricalStats', action, (response: ServerResponse<DestinyHistoricalStatsAccountResult>) => {
-                if (response?.Response?.characters?.length > 0) {
+              return this.bungieQueue.addToQueue('getHistoricalStats', action, callback => {
+                if (callback?.Response?.characters?.length > 0) {
                   return forkJoin(
-                    response.Response.characters.map((character) => {
+                    callback.Response.characters.map((character) => {
                       const { characterId } = character;
                       const paramsB: GetCharacterParams = {
                         characterId,
@@ -101,8 +102,8 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
                         components: [DestinyComponentType.Characters],
                       };
                       return this.bungieQueue.addToQueue('getCharacter', getCharacter, (res: ServerResponse<DestinyCharacterResponse>) => {
-                        if (res?.Response?.character) {
-                          return res.Response.character;
+                        if (res?.Response?.character?.data) {
+                          return res.Response.character.data;
                         }
                         return null;
                       }, paramsB);
@@ -160,19 +161,23 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     });
   }
 
-  private addHistorySub(params: GetActivityHistoryParams) {
+  private async addHistorySub(params: GetActivityHistoryParams) {
     const action = getActivityHistory;
-    const callback = (response: ServerResponse<DestinyActivityHistoryResults>) => {
+    const callback = async (response: ServerResponse<DestinyActivityHistoryResults>) => {
       if (response?.Response?.activities) {
-        this.activities = response.Response.activities
-          .filter((activity) => this.isSameDay(new Date(activity.period), this.date.value))
-          .map((activity: DestinyHistoricalStatsPeriodGroup) => ({
-            ...activity,
-            activityType: this.getActivityType(activity),
-            duration: this.getActivityDuration(activity),
-          })) as Activity[];
+        const activities = await Promise.all(
+          response.Response.activities
+            .filter((activity) => this.isSameDay(new Date(activity.period), this.date.value))
+            .map(async (activity: DestinyHistoricalStatsPeriodGroup) => ({
+              ...activity,
+              activityType: await this.getActivityType(activity),
+              duration: this.getActivityDuration(activity),
+            }))
+        );
+        this.activities = activities as Activity[];
       }
       this.loading = false;
+      return response;
     };
     const sub = this.bungieQueue.addToQueue('getActivityHistory', action, callback, params).subscribe();
     this.subs.push(sub);
@@ -187,8 +192,13 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     );
   }
 
-  getActivityType(activity: DestinyHistoricalStatsPeriodGroup): string {
-    return activity.activityDetails.mode.toString();
+  private async getActivityType(activity: DestinyHistoricalStatsPeriodGroup): Promise<string> {
+    const modeHash = activity.activityDetails.mode;
+    return new Promise<string>((resolve) => {
+      this.manifestService.getActivityModeName(modeHash)
+        .pipe(take(1))
+        .subscribe(name => resolve(name));
+    });
   }
 
   getActivityDuration(activity: DestinyHistoricalStatsPeriodGroup): string {
@@ -199,10 +209,10 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
   }
 
   getActivityTypes(): string[] {
-    return [...new Set(this.activities.map((activity) => this.getActivityType(activity)))].sort();
+    return [...new Set(this.activities.map((activity) => activity.activityType))].sort();
   }
 
   getActivitiesByType(type: string): Activity[] {
-    return this.activities.filter((activity) => this.getActivityType(activity) === type);
+    return this.activities.filter((activity) => activity.activityType === type);
   }
 } 

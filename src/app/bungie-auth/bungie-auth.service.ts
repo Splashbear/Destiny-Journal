@@ -3,16 +3,19 @@ import { Inject, Injectable } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { OAuthService } from 'angular-oauth2-oidc'
 import { JwksValidationHandler } from 'angular-oauth2-oidc-jwks'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, Observable } from 'rxjs'
 import { environment } from '../../environments/environment'
 import { OAuthBungieService } from './bungie-auth.module'
 import { BungieOAuthStorage } from './bungie-auth.storage'
+import { map } from 'rxjs/operators'
 
 @Injectable({
   providedIn: 'root',
 })
 export class BungieAuthService {
-  hasValidAccessToken$: BehaviorSubject<boolean> = new BehaviorSubject(false)
+  private accessToken$ = new BehaviorSubject<string | null>(null)
+  private refreshToken$ = new BehaviorSubject<string | null>(null)
+  private expiresIn$ = new BehaviorSubject<number | null>(null)
 
   constructor(
     @Inject(DOCUMENT) private document: Document,
@@ -31,7 +34,66 @@ export class BungieAuthService {
       dummyClientSecret: environment.bungie.clientSecret,
     })
     this.oAuthService.tokenValidationHandler = new JwksValidationHandler()
+    this.loadTokensFromStorage()
     this.tryLogin()
+  }
+
+  get hasValidAccessToken$(): Observable<boolean> {
+    return this.accessToken$.pipe(
+      map(token => !!token && !this.isTokenExpired())
+    )
+  }
+
+  private loadTokensFromStorage(): void {
+    const accessToken = localStorage.getItem('bungie_access_token')
+    const refreshToken = localStorage.getItem('bungie_refresh_token')
+    const expiresIn = localStorage.getItem('bungie_expires_in')
+
+    if (accessToken) {
+      this.accessToken$.next(accessToken)
+    }
+    if (refreshToken) {
+      this.refreshToken$.next(refreshToken)
+    }
+    if (expiresIn) {
+      this.expiresIn$.next(parseInt(expiresIn, 10))
+    }
+  }
+
+  private isTokenExpired(): boolean {
+    const expiresIn = this.expiresIn$.value
+    if (!expiresIn) {
+      return true
+    }
+    return Date.now() >= expiresIn
+  }
+
+  setTokens(accessToken: string, refreshToken: string, expiresIn: number): void {
+    localStorage.setItem('bungie_access_token', accessToken)
+    localStorage.setItem('bungie_refresh_token', refreshToken)
+    localStorage.setItem('bungie_expires_in', (Date.now() + expiresIn * 1000).toString())
+
+    this.accessToken$.next(accessToken)
+    this.refreshToken$.next(refreshToken)
+    this.expiresIn$.next(Date.now() + expiresIn * 1000)
+  }
+
+  clearTokens(): void {
+    localStorage.removeItem('bungie_access_token')
+    localStorage.removeItem('bungie_refresh_token')
+    localStorage.removeItem('bungie_expires_in')
+
+    this.accessToken$.next(null)
+    this.refreshToken$.next(null)
+    this.expiresIn$.next(null)
+  }
+
+  getAccessToken(): string | null {
+    return this.accessToken$.value
+  }
+
+  getRefreshToken(): string | null {
+    return this.refreshToken$.value
   }
 
   async tryLogin() {
@@ -41,7 +103,8 @@ export class BungieAuthService {
       }
       if (this.oAuthService.hasValidAccessToken()) {
         this.oAuthService.setupAutomaticSilentRefresh()
-        this.hasValidAccessToken$.next(true)
+        this.accessToken$.next(this.oAuthService.getAccessToken())
+        this.refreshToken$.next(this.oAuthService.getRefreshToken())
       }
     })
   }
@@ -55,6 +118,8 @@ export class BungieAuthService {
 
   logout() {
     this.oAuthService.logOut()
-    this.hasValidAccessToken$.next(false)
+    this.accessToken$.next(null)
+    this.refreshToken$.next(null)
+    this.expiresIn$.next(null)
   }
 }
