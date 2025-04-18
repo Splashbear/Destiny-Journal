@@ -45,12 +45,10 @@ import localeKo from '@angular/common/locales/ko'
 import localeIt from '@angular/common/locales/it'
 import localeRu from '@angular/common/locales/ru'
 import localePl from '@angular/common/locales/pl'
-import { WebringComponent } from './webring/webring.component'
 import { ActivityViewerComponent } from './activity-viewer/activity-viewer.component'
 import { BungieAuthService } from './bungie-auth/bungie-auth.service'
 import { ManifestService } from './manifest/manifest.service'
 import { BungieQueueService } from './services/queue.service'
-import { MatBottomSheetModule } from '@angular/material/bottom-sheet'
 import { AppRoutingModule } from './app-routing.module'
 
 const lang = 'en-US'
@@ -158,7 +156,6 @@ navigator.languages.some((l) => {
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
-    MatBottomSheetModule,
     AppRoutingModule
   ],
   providers: [
@@ -167,7 +164,6 @@ navigator.languages.some((l) => {
     ManifestService,
     BungieQueueService
   ],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

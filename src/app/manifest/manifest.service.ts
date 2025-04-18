@@ -10,8 +10,8 @@ import {
 import { deepEqual } from 'fast-equals'
 import { del, get, set } from 'idb-keyval'
 import _ from 'lodash'
-import { BehaviorSubject, EMPTY, from, Subject, Observable } from 'rxjs'
-import { catchError, map, switchMap } from 'rxjs/operators'
+import { BehaviorSubject, EMPTY, from, Subject, Observable, of } from 'rxjs'
+import { catchError, map, switchMap, take } from 'rxjs/operators'
 import { openDB, IDBPDatabase } from 'idb'
 import { BungieQueueService } from '../services/queue.service'
 
@@ -32,15 +32,15 @@ export class ManifestService {
   }
   state$ = new BehaviorSubject<ManifestServiceState>(this.state)
   /** A signal for when we've loaded a new remote manifest. */
-  newManifest$ = new Subject()
+  newManifest$ = new Subject<void>()
   defs: {
     Activity?: {
       dbTable: Record<string, DestinyActivityDefinition>;
-      get(hash: number): DestinyActivityDefinition;
+      get(hash: number): DestinyActivityDefinition | undefined;
     };
     ActivityMode?: {
       dbTable: Record<string, DestinyActivityModeDefinition>;
-      get(modeType: number): DestinyActivityModeDefinition;
+      get(modeType: number): DestinyActivityModeDefinition | undefined;
     };
   } = {}
 
@@ -91,7 +91,8 @@ export class ManifestService {
       return response
     }
 
-    this.bungieQueue.addToQueue('getDestinyManifest', action, callback).subscribe()
+    const subscription = this.bungieQueue.addToQueue('getDestinyManifest', action, callback).subscribe()
+    return subscription
   }
 
   private async updateManifest(manifest: DestinyManifest) {
@@ -123,16 +124,20 @@ export class ManifestService {
 
   getActivityDefinition(hash: number): Observable<DestinyActivityDefinition | undefined> {
     if (!this.db) {
-      return from(Promise.resolve(undefined))
+      return of(undefined)
     }
-    return from(this.db.get('Activity', hash.toString()))
+    return from(this.db.get('Activity', hash.toString())).pipe(
+      catchError(() => of(undefined))
+    )
   }
 
   getActivityModeDefinition(hash: number): Observable<DestinyActivityModeDefinition | undefined> {
     if (!this.db) {
-      return from(Promise.resolve(undefined))
+      return of(undefined)
     }
-    return from(this.db.get('ActivityMode', hash.toString()))
+    return from(this.db.get('ActivityMode', hash.toString())).pipe(
+      catchError(() => of(undefined))
+    )
   }
 
   getActivityName(hash: number): Observable<string> {

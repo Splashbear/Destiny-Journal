@@ -18,15 +18,19 @@ type BungieAction =
 
 interface QueueItem<T = any> {
   actionFunction: (config: any, params: any) => Promise<ServerResponse<T>>
-  callback: (response: ServerResponse<T>) => void
+  callback: (response: ServerResponse<T>) => Promise<T> | T
   params?: any
+}
+
+interface QueueState {
+  [key: string]: Subject<any>
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class BungieQueueService {
-  private queue: { [key: string]: Subject<any> } = {}
+  private queue: QueueState = {}
 
   queue$ = new BehaviorSubject<Record<BungieAction, QueueItem[]>>({
     getGlobalAlerts: [],
@@ -149,19 +153,29 @@ export class BungieQueueService {
               item.params
             )
             .then((response) => {
-              item.callback(response)
-              this.queueCount[action].completed++
-              this.queueCount[action].percentage = Math.round(
-                (this.queueCount[action].completed /
-                  (this.queueCount[action].completed + this.queueCount[action].queued)) *
-                100
-              )
-              const newQueue = [...queue]
-              newQueue.shift()
-              this.queue$.next({
-                ...this.queue$.value,
-                [action]: newQueue,
-              })
+              if (response.ErrorCode === 1) {
+                item.callback(response)
+                this.queueCount[action].completed++
+                this.queueCount[action].percentage = Math.round(
+                  (this.queueCount[action].completed /
+                    (this.queueCount[action].completed + this.queueCount[action].queued)) *
+                  100
+                )
+                const newQueue = [...queue]
+                newQueue.shift()
+                this.queue$.next({
+                  ...this.queue$.value,
+                  [action]: newQueue,
+                })
+              } else {
+                this.queueCount[action].errors++
+                const newQueue = [...queue]
+                newQueue.shift()
+                this.queue$.next({
+                  ...this.queue$.value,
+                  [action]: newQueue,
+                })
+              }
             })
             .catch((error) => {
               this.queueCount[action].errors++
@@ -187,10 +201,15 @@ export class BungieQueueService {
       this.queue[key] = new Subject<R>()
       action(...args)
         .then(async (response: ServerResponse<T>) => {
-          const result = await callback(response)
-          this.queue[key].next(result)
-          this.queue[key].complete()
-          delete this.queue[key]
+          try {
+            const result = await callback(response)
+            this.queue[key].next(result)
+            this.queue[key].complete()
+          } catch (error) {
+            this.queue[key].error(error)
+          } finally {
+            delete this.queue[key]
+          }
         })
         .catch((error) => {
           this.queue[key].error(error)
