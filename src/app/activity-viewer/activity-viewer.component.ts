@@ -4,7 +4,7 @@ import { MatDatepickerInputEvent } from '@angular/material/datepicker';
 import { BungieAuthService } from '../bungie-auth/bungie-auth.service';
 import { ManifestService } from '../manifest/manifest.service';
 import { BungieQueueService } from '../services/queue.service';
-import { destiny } from '../scrubland.typings';
+import { Activity, ActivityMode } from '../scrubland.typings';
 import { BehaviorSubject, EMPTY, forkJoin, Observable, of, Subscription } from 'rxjs';
 import { distinctUntilChanged, map, switchMap, take, tap } from 'rxjs/operators';
 import { 
@@ -37,7 +37,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
   private accountResponse$ = new BehaviorSubject<ServerResponse<DestinyHistoricalStatsAccountResult>[]>([]);
   public displayName = '';
   public characters$: Observable<DestinyCharacterComponent[]>;
-  public activities: destiny.Activity[] = [];
+  public activities: Activity[] = [];
   public loading = false;
   public errorStatus = '';
   public errorMessage = '';
@@ -170,7 +170,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
             ...activity,
             activityType: this.getActivityType(activity),
             duration: this.getActivityDuration(activity),
-          })) as destiny.Activity[];
+          })) as Activity[];
       }
       this.loading = false;
     };
@@ -202,7 +202,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     return [...new Set(this.activities.map((activity) => this.getActivityType(activity)))].sort();
   }
 
-  getActivitiesByType(type: string): destiny.Activity[] {
+  getActivitiesByType(type: string): Activity[] {
     return this.activities.filter((activity) => this.getActivityType(activity) === type);
   }
 } 
