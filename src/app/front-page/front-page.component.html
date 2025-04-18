@@ -1,61 +1,35 @@
-<div class="front-page-container">
+<div class="front-page">
   <h1>Destiny Journal</h1>
-  <p class="mat-body-1">View your Destiny 1 & 2 activities across all years</p>
-  
-  <div class="search-container">
+  <p class="description">View your Destiny 1 & 2 activities across all years.</p>
+
+  <div class="search-section">
     <mat-form-field appearance="outline" class="search-field">
-      <mat-label>Enter your Bungie username</mat-label>
-      <input matInput [(ngModel)]="username" placeholder="e.g. Guardian#1234">
+      <mat-label>Enter Bungie Username</mat-label>
+      <input matInput [(ngModel)]="username" (keyup.enter)="searchByUsername()" placeholder="e.g. Guardian123#1234">
       <button matSuffix mat-icon-button (click)="searchByUsername()">
         <mat-icon>search</mat-icon>
       </button>
     </mat-form-field>
   </div>
 
-  <div class="auth-container">
-    <p class="mat-body-2">Or authenticate with your Bungie account for full access:</p>
-    <div *ngIf="(bungieAuth.hasValidAccessToken$ | async) === false">
-      <button mat-raised-button color="primary" (click)="login()">
-        Login with Bungie <mat-icon aria-label="Login with Bungie">login</mat-icon>
-      </button>
-    </div>
-    <div *ngIf="bungieAuth.hasValidAccessToken$ | async">
-      <button mat-raised-button color="primary" routerLink="/activities">
-        View Activities <mat-icon aria-label="View Activities">calendar_today</mat-icon>
-      </button>
-    </div>
-  </div>
-
   <div class="features">
     <h2>Features</h2>
-    <mat-card class="feature-card">
-      <mat-card-header>
-        <mat-icon mat-card-avatar>calendar_today</mat-icon>
-        <mat-card-title>Date-Based View</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <p>See what you were doing on any date across all years of Destiny</p>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="feature-card">
-      <mat-card-header>
-        <mat-icon mat-card-avatar>games</mat-icon>
-        <mat-card-title>Both Games</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <p>View activities from both Destiny 1 and Destiny 2 in one place</p>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="feature-card">
-      <mat-card-header>
-        <mat-icon mat-card-avatar>analytics</mat-icon>
-        <mat-card-title>Detailed Stats</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <p>See detailed activity statistics including kills, deaths, and more</p>
-      </mat-card-content>
-    </mat-card>
+    <div class="feature-grid">
+      <div class="feature">
+        <mat-icon>calendar_today</mat-icon>
+        <h3>Daily Activity History</h3>
+        <p>View your activities for any day since Destiny 1 launched</p>
+      </div>
+      <div class="feature">
+        <mat-icon>games</mat-icon>
+        <h3>Cross-Game Support</h3>
+        <p>Track activities from both Destiny 1 and Destiny 2</p>
+      </div>
+      <div class="feature">
+        <mat-icon>analytics</mat-icon>
+        <h3>Activity Statistics</h3>
+        <p>See your playtime, streaks, and activity breakdowns</p>
+      </div>
+    </div>
   </div>
 </div>

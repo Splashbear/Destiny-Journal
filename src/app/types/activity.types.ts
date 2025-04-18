@@ -2,8 +2,10 @@ import {
   DestinyHistoricalStatsActivity, 
   DestinyHistoricalStatsPeriodGroup, 
   DestinyHistoricalStatsValue,
-  DestinyActivityModeType
-} from 'bungie-api-ts/destiny2';
+  DestinyActivityModeType,
+  BungieMembershipType,
+  DestinyClass
+} from 'quria';
 
 export type DestinyVersion = 'Destiny1' | 'Destiny2';
 
@@ -13,11 +15,11 @@ export interface Activity extends DestinyHistoricalStatsPeriodGroup {
   year: number;
   destinyVersion: DestinyVersion;
   activityDetails: DestinyHistoricalStatsActivity & {
-    mode?: DestinyActivityModeType;
-    directorActivityHash?: number;
-    referenceId?: number;
-    instanceId?: string;
-    isPrivate?: boolean;
+    mode: DestinyActivityModeType;
+    directorActivityHash: number;
+    referenceId: number;
+    instanceId: string;
+    isPrivate: boolean;
   };
   values: {
     [key: string]: DestinyHistoricalStatsValue;

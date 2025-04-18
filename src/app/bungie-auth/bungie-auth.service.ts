@@ -7,12 +7,13 @@ import { BehaviorSubject, Observable } from 'rxjs'
 import { environment } from '../../environments/environment'
 import { OAuthBungieService } from './bungie-auth.module'
 import { BungieOAuthStorage } from './bungie-auth.storage'
-import { map } from 'rxjs/operators'
+import { map, distinctUntilChanged } from 'rxjs/operators'
 
 @Injectable({
   providedIn: 'root',
 })
 export class BungieAuthService {
+  private apiKey = 'YOUR_API_KEY' // Replace with your actual API key
   private accessToken$ = new BehaviorSubject<string | null>(null)
   private refreshToken$ = new BehaviorSubject<string | null>(null)
   private expiresIn$ = new BehaviorSubject<number | null>(null)
@@ -20,7 +21,8 @@ export class BungieAuthService {
   constructor(
     @Inject(DOCUMENT) private document: Document,
     @Inject(OAuthBungieService) private oAuthService: OAuthService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private storage: BungieOAuthStorage
   ) {
     this.oAuthService.setStorage(new BungieOAuthStorage())
     this.oAuthService.configure({
@@ -124,5 +126,9 @@ export class BungieAuthService {
     this.accessToken$.next(null)
     this.refreshToken$.next(null)
     this.expiresIn$.next(null)
+  }
+
+  getApiKey(): string {
+    return this.apiKey
   }
 }

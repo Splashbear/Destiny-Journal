@@ -5,8 +5,9 @@ import {
   DestinyActivityModeDefinition,
   DestinyManifest,
   getDestinyManifest,
-  ServerResponse,
+  ServerResponse
 } from 'bungie-api-ts/destiny2'
+import { BungieMembershipType, DestinyActivityModeType } from 'quria'
 import { del, set } from 'idb-keyval'
 import { BehaviorSubject, from, Subject, Observable, of } from 'rxjs'
 import { catchError, map } from 'rxjs/operators'
@@ -25,7 +26,7 @@ interface ManifestDefinitions {
   }
   ActivityMode?: {
     dbTable: Record<string, DestinyActivityModeDefinition>
-    get(modeType: number): DestinyActivityModeDefinition | undefined
+    get(modeType: DestinyActivityModeType): DestinyActivityModeDefinition | undefined
   }
 }
 
@@ -130,7 +131,7 @@ export class ManifestService {
     )
   }
 
-  getActivityModeDefinition(hash: number): Observable<DestinyActivityModeDefinition | undefined> {
+  getActivityModeDefinition(hash: DestinyActivityModeType): Observable<DestinyActivityModeDefinition | undefined> {
     if (!this.db) {
       return of(undefined)
     }

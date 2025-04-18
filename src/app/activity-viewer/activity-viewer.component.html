@@ -1,10 +1,35 @@
 <div class="activity-viewer">
-  <mat-form-field>
-    <mat-label>Choose a date</mat-label>
-    <input matInput [matDatepicker]="picker" [formControl]="date" (dateChange)="onDateChange($event)">
-    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-    <mat-datepicker #picker></mat-datepicker>
-  </mat-form-field>
+  <div class="header">
+    <div class="user-info" *ngIf="displayName">
+      <h1>Activities for {{ displayName }}</h1>
+      <div class="platform" *ngIf="membershipType">
+        <app-platform-icon [membershipType]="membershipType" [large]="true"></app-platform-icon>
+      </div>
+    </div>
+    <mat-form-field>
+      <mat-label>Choose a date</mat-label>
+      <input matInput [matDatepicker]="picker" [formControl]="date" (dateChange)="onDateChange($event)">
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+  </div>
+
+  <div class="filters" *ngIf="!loading && !errorStatus && activities.length > 0">
+    <mat-form-field>
+      <mat-label>Filter by activity type</mat-label>
+      <mat-select [formControl]="activityTypeFilter" multiple>
+        <mat-option (click)="$event.stopPropagation(); selectAllActivityTypes()">Select All</mat-option>
+        <mat-option *ngFor="let type of getActivityTypes()" [value]="type">{{ type }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Filter by Destiny version</mat-label>
+      <mat-select [formControl]="destinyVersionFilter" multiple>
+        <mat-option (click)="$event.stopPropagation(); selectAllDestinyVersions()">Select All</mat-option>
+        <mat-option *ngFor="let version of getUniqueDestinyVersions()" [value]="version">{{ version }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
 
   <div *ngIf="loading" class="loading">
     <mat-spinner></mat-spinner>
@@ -27,6 +52,7 @@
               <div *ngFor="let activity of getActivitiesByTypeYearAndVersion(type, year, version)" class="activity">
                 <div class="activity-header">
                   <span class="duration">{{ activity.duration }}</span>
+                  <span class="last-played">{{ timeSince(activity.period) }}</span>
                 </div>
                 <div class="activity-details">
                   <div *ngIf="activity.values.kills" class="stat">

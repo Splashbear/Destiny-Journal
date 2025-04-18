@@ -2,8 +2,8 @@ import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { GetPostGameCarnageReportParams } from 'bungie-api-ts/destiny2'
 import { ServerResponse } from 'bungie-api-ts/common'
-import { BehaviorSubject, Observable, Subject } from 'rxjs'
-import { debounceTime } from 'rxjs/operators'
+import { BehaviorSubject, Observable, Subject, of } from 'rxjs'
+import { debounceTime, catchError, delay, retryWhen, take } from 'rxjs/operators'
 
 type BungieAction =
   | 'getGlobalAlerts'
@@ -30,7 +30,7 @@ interface QueueState {
   providedIn: 'root',
 })
 export class BungieQueueService {
-  private queue: QueueState = {}
+  private queue: { [key: string]: Observable<any> } = {}
 
   queue$ = new BehaviorSubject<Record<BungieAction, QueueItem[]>>({
     getGlobalAlerts: [],
@@ -191,32 +191,26 @@ export class BungieQueueService {
     })
   }
 
-  addToQueue<T, R>(
-    key: string,
-    action: (...args: any[]) => Promise<ServerResponse<T>>,
-    callback: (response: ServerResponse<T>) => Promise<R> | R,
-    ...args: any[]
-  ): Observable<R> {
+  addToQueue<T>(key: string, action: () => Promise<T>): Observable<T> {
     if (!this.queue[key]) {
-      this.queue[key] = new Subject<R>()
-      action(...args)
-        .then(async (response: ServerResponse<T>) => {
-          try {
-            const result = await callback(response)
-            this.queue[key].next(result)
-            this.queue[key].complete()
-          } catch (error) {
-            this.queue[key].error(error)
-          } finally {
-            delete this.queue[key]
-          }
+      this.queue[key] = new Observable<T>(subscriber => {
+        action()
+          .then(response => {
+            subscriber.next(response);
+            subscriber.complete();
+          })
+          .catch(error => {
+            subscriber.error(error);
+          });
+      }).pipe(
+        retryWhen(errors => errors.pipe(delay(1000), take(3))),
+        catchError(error => {
+          console.error(`Error in ${key}:`, error);
+          return of(null);
         })
-        .catch((error) => {
-          this.queue[key].error(error)
-          delete this.queue[key]
-        })
+      );
     }
-    return this.queue[key].asObservable()
+    return this.queue[key];
   }
 
   updateQueue(queueCount: Partial<Record<BungieAction, QueueCount>>): void {
@@ -224,6 +218,10 @@ export class BungieQueueService {
       ...this.queueCount,
       ...queueCount,
     }
+  }
+
+  clearQueue(): void {
+    this.queue = {}
   }
 }
 
