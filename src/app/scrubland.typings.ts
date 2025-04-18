@@ -1,4 +1,9 @@
-import { DestinyHistoricalStatsActivity, DestinyHistoricalStatsPeriodGroup, DestinyHistoricalStatsValue } from 'bungie-api-ts/destiny2';
+import { 
+  DestinyHistoricalStatsActivity, 
+  DestinyHistoricalStatsPeriodGroup, 
+  DestinyHistoricalStatsValue,
+  DestinyActivityModeType
+} from 'bungie-api-ts/destiny2';
 
 export namespace destiny {
   export interface Activity extends DestinyHistoricalStatsPeriodGroup {
@@ -14,5 +19,11 @@ export namespace destiny {
         };
       };
     };
+  }
+
+  export interface ActivityMode {
+    modeType: DestinyActivityModeType;
+    name: string;
+    description: string;
   }
 } 

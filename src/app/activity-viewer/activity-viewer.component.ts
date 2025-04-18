@@ -60,9 +60,12 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
           if (hasValidAccessToken) {
             const action = getMembershipDataForCurrentUser;
             const callback = (response: ServerResponse<UserMembershipData>) => {
-              this.membershipDataForCurrentUser$.next(response);
+              if (response?.Response) {
+                this.membershipDataForCurrentUser$.next(response);
+              }
             };
-            this.bungieQueue.addToQueue('getMembershipDataForCurrentUser', action, callback).subscribe();
+            const sub = this.bungieQueue.addToQueue('getMembershipDataForCurrentUser', action, callback).subscribe();
+            this.subs.push(sub);
           }
         })
       )
@@ -172,7 +175,8 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
       }
       this.loading = false;
     };
-    this.bungieQueue.addToQueue('getActivityHistory', action, callback, params).subscribe();
+    const sub = this.bungieQueue.addToQueue('getActivityHistory', action, callback, params).subscribe();
+    this.subs.push(sub);
   }
 
   private isSameDay(date1: Date, date2: Date): boolean {
