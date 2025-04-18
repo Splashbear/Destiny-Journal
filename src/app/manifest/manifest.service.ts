@@ -92,7 +92,10 @@ export class ManifestService {
       return response
     }
 
-    this.bungieQueue.addToQueue('getDestinyManifest', action, callback).subscribe()
+    this.bungieQueue.addToQueue('getDestinyManifest', async () => {
+      const response = await action()
+      return callback(response)
+    }).subscribe()
   }
 
   private async updateManifest(manifest: DestinyManifest): Promise<void> {

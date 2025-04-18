@@ -179,7 +179,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
       
       const response = await this.quria.destiny2.GetActivityHistory(
         params.destinyMembershipId,
-        convertMembershipType(params.membershipType),
+        params.membershipType.toString(),
         params.characterId,
         activityParams
       );

@@ -134,7 +134,6 @@ navigator.languages.some((l) => {
     LoadingReducePipe,
     CurrentStreakPipe,
     LongestStreaksPipe,
-    ActivityViewerComponent
   ],
   imports: [
     BrowserModule,
@@ -156,7 +155,8 @@ navigator.languages.some((l) => {
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
-    AppRoutingModule
+    AppRoutingModule,
+    ActivityViewerComponent,
   ],
   providers: [
     { provide: LOCALE_ID, useValue: lang },
