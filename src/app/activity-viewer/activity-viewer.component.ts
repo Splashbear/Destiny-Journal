@@ -52,73 +52,71 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadActivitiesForDate(new Date());
 
-    this.subs.push(
-      this.bungieAuth.hasValidAccessToken$
-        .pipe(
-          distinctUntilChanged(),
-          tap((hasValidAccessToken) => {
-            if (hasValidAccessToken) {
-              const action = getMembershipDataForCurrentUser;
-              const callback = (response: ServerResponse<UserMembershipData>) => {
-                this.membershipDataForCurrentUser$.next(response);
-              };
-              this.bungieQueue.addToQueue('getProfile', action, callback);
-            }
-          })
-        )
-        .subscribe()
-    );
-
-    this.subs.push(
-      this.membershipDataForCurrentUser$
-        .pipe(
-          distinctUntilChanged(),
-          switchMap((userMembershipData) => {
-            if (!userMembershipData?.Response?.destinyMemberships) {
-              return of([]);
-            }
-            return forkJoin(
-              userMembershipData.Response.destinyMemberships.map((destinyMembership) => {
-                const { membershipId, membershipType } = destinyMembership;
-                const action = getHistoricalStatsForAccount;
-                const callback = (response: ServerResponse<DestinyHistoricalStatsAccountResult>) => {
-                  if (response?.Response?.characters?.length > 0) {
-                    return forkJoin(
-                      response.Response.characters.map((character) => {
-                        const { characterId } = character;
-                        const actionB = getCharacter;
-                        const callbackB = (res: ServerResponse<DestinyCharacterResponse>) => {
-                          if (res?.Response?.character) {
-                            return res.Response.character;
-                          }
-                          return null;
-                        };
-                        const paramsB: GetCharacterParams = {
-                          characterId,
-                          destinyMembershipId: membershipId,
-                          membershipType,
-                          components: [DestinyComponentType.Characters],
-                        };
-                        return this.bungieQueue.addToQueue('getCharacter', actionB, callbackB, paramsB);
-                      })
-                    );
-                  }
-                  return of([]);
-                };
-                const params: GetHistoricalStatsForAccountParams = {
-                  destinyMembershipId: membershipId,
-                  membershipType,
-                  groups: [DestinyStatsGroupType.General],
-                };
-                return this.bungieQueue.addToQueue('getHistoricalStats', action, callback, params);
-              })
-            );
-          })
-        )
-        .subscribe((responses) => {
-          this.accountResponse$.next(responses);
+    const authSub = this.bungieAuth.hasValidAccessToken$
+      .pipe(
+        distinctUntilChanged(),
+        tap((hasValidAccessToken) => {
+          if (hasValidAccessToken) {
+            const action = getMembershipDataForCurrentUser;
+            const callback = (response: ServerResponse<UserMembershipData>) => {
+              this.membershipDataForCurrentUser$.next(response);
+            };
+            this.bungieQueue.addToQueue('getProfile', action, callback).subscribe();
+          }
         })
-    );
+      )
+      .subscribe();
+
+    const membershipSub = this.membershipDataForCurrentUser$
+      .pipe(
+        distinctUntilChanged(),
+        switchMap((userMembershipData) => {
+          if (!userMembershipData?.Response?.destinyMemberships) {
+            return of([]);
+          }
+          return forkJoin(
+            userMembershipData.Response.destinyMemberships.map((destinyMembership) => {
+              const { membershipId, membershipType } = destinyMembership;
+              const action = getHistoricalStatsForAccount;
+              const callback = (response: ServerResponse<DestinyHistoricalStatsAccountResult>) => {
+                if (response?.Response?.characters?.length > 0) {
+                  return forkJoin(
+                    response.Response.characters.map((character) => {
+                      const { characterId } = character;
+                      const actionB = getCharacter;
+                      const callbackB = (res: ServerResponse<DestinyCharacterResponse>) => {
+                        if (res?.Response?.character) {
+                          return res.Response.character;
+                        }
+                        return null;
+                      };
+                      const paramsB: GetCharacterParams = {
+                        characterId,
+                        destinyMembershipId: membershipId,
+                        membershipType,
+                        components: [DestinyComponentType.Characters],
+                      };
+                      return this.bungieQueue.addToQueue('getCharacter', actionB, callbackB, paramsB);
+                    })
+                  );
+                }
+                return of([]);
+              };
+              const params: GetHistoricalStatsForAccountParams = {
+                destinyMembershipId: membershipId,
+                membershipType,
+                groups: [DestinyStatsGroupType.General],
+              };
+              return this.bungieQueue.addToQueue('getHistoricalStats', action, callback, params);
+            })
+          );
+        })
+      )
+      .subscribe((responses) => {
+        this.accountResponse$.next(responses);
+      });
+
+    this.subs.push(authSub, membershipSub);
   }
 
   ngOnDestroy() {
@@ -173,7 +171,7 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
       }
       this.loading = false;
     };
-    this.bungieQueue.addToQueue('getActivityHistory', action, callback, params);
+    this.bungieQueue.addToQueue('getActivityHistory', action, callback, params).subscribe();
   }
 
   private isSameDay(date1: Date, date2: Date): boolean {
