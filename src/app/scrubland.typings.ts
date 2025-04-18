@@ -6,8 +6,8 @@ import {
   ServerResponse
 } from 'bungie-api-ts/destiny2';
 
-export namespace destiny {
-  export interface Activity extends DestinyHistoricalStatsPeriodGroup {
+declare namespace destiny {
+  interface Activity extends DestinyHistoricalStatsPeriodGroup {
     activityType: string;
     duration: string;
     activityDetails: DestinyHistoricalStatsActivity;
@@ -17,13 +17,11 @@ export namespace destiny {
     };
   }
 
-  export interface ActivityMode {
+  interface ActivityMode {
     modeType: DestinyActivityModeType;
     name: string;
     description: string;
   }
+}
 
-  export interface BungieResponse<T> extends ServerResponse<T> {
-    statusCode?: number;
-  }
-} 
+export { destiny }; 
