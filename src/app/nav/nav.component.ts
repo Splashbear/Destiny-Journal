@@ -1,4 +1,4 @@
-import { Component } from '@angular/core'
+import { Component, OnInit } from '@angular/core'
 import { BungieAuthService } from '../bungie-auth/bungie-auth.service'
 import { Router } from '@angular/router'
 
@@ -7,7 +7,7 @@ import { Router } from '@angular/router'
   templateUrl: './nav.component.html',
   styleUrls: ['./nav.component.scss'],
 })
-export class NavComponent {
+export class NavComponent implements OnInit {
   public searchString: string
 
   constructor(public bungieAuth: BungieAuthService, private router: Router) {}

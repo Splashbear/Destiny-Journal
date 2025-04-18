@@ -4,8 +4,8 @@ import { Pipe, PipeTransform } from '@angular/core'
   name: 'hoursPlayed',
 })
 export class HoursPlayedPipe implements PipeTransform {
-  transform(minutes: number, args?: any): any {
+  transform(minutes: number): string {
     const h = Math.floor(minutes / 60)
-    return h + 'h'
+    return `${h}h`
   }
 }

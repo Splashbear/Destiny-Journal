@@ -2,34 +2,35 @@ import { Injectable } from '@angular/core'
 import { UserInfoCard } from 'bungie-api-ts/user'
 import { BehaviorSubject } from 'rxjs'
 
-@Injectable()
+interface UserLanguage {
+  language?: string
+}
+
+@Injectable({
+  providedIn: 'root',
+})
 export class SettingsService {
   private _dark: boolean
-
   public activeProfiles: BehaviorSubject<UserInfoCard[]>
-  public userLang: {
-    language?: string
-  }
-  public userLangObs: BehaviorSubject<{
-    language?: string
-  }>
+  public userLang: UserLanguage
+  public userLangObs: BehaviorSubject<UserLanguage>
   public dark: BehaviorSubject<boolean>
 
   constructor() {
     if (localStorage.getItem('gt.DARK') !== null) {
-      this._dark = JSON.parse(localStorage.getItem('gt.DARK')) || false
+      this._dark = JSON.parse(localStorage.getItem('gt.DARK') || 'false')
     } else {
       this._dark = true
     }
 
-    this.activeProfiles = new BehaviorSubject([])
-    this.dark = new BehaviorSubject(this._dark)
+    this.activeProfiles = new BehaviorSubject<UserInfoCard[]>([])
+    this.dark = new BehaviorSubject<boolean>(this._dark)
 
     this.userLang = {
       language: 'en',
     }
-    if (JSON.parse(localStorage.getItem('gt.LANGUAGE'))) {
-      this.userLang = JSON.parse(localStorage.getItem('gt.LANGUAGE'))
+    if (JSON.parse(localStorage.getItem('gt.LANGUAGE') || 'null')) {
+      this.userLang = JSON.parse(localStorage.getItem('gt.LANGUAGE') || '{"language":"en"}')
     } else if (navigator.language) {
       switch (navigator.language.substr(0, 2)) {
         case 'fr':
@@ -72,16 +73,16 @@ export class SettingsService {
           break
       }
     }
-    this.userLangObs = new BehaviorSubject(this.userLang)
+    this.userLangObs = new BehaviorSubject<UserLanguage>(this.userLang)
   }
 
-  toggleDark() {
+  toggleDark(): void {
     this._dark = !this._dark
     this.dark.next(this._dark)
     localStorage.setItem('gt.DARK', JSON.stringify(this._dark))
   }
 
-  set setLanguage(language) {
+  set setLanguage(language: string) {
     this.userLang.language = language
     localStorage.setItem('gt.LANGUAGE', JSON.stringify(this.userLang))
     this.userLangObs.next(this.userLang)

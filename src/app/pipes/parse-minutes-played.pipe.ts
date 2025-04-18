@@ -4,10 +4,10 @@ import { Pipe, PipeTransform } from '@angular/core'
   name: 'parseMinutesPlayed',
 })
 export class ParseMinutesPlayedPipe implements PipeTransform {
-  transform(minutes: number, args?: any): any {
+  transform(minutes: number): string {
     const d = Math.floor(minutes / 1440)
     const h = Math.floor((minutes % 1440) / 60)
     const m = Math.floor((minutes % 1440) % 60)
-    return d + 'd ' + h + 'h ' + m + 'm'
+    return `${d}d ${h}h ${m}m`
   }
 }

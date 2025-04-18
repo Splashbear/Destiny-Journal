@@ -7,17 +7,26 @@ import {
   getDestinyManifest,
   ServerResponse,
 } from 'bungie-api-ts/destiny2'
-import { deepEqual } from 'fast-equals'
-import { del, get, set } from 'idb-keyval'
-import _ from 'lodash'
-import { BehaviorSubject, EMPTY, from, Subject, Observable, of } from 'rxjs'
-import { catchError, map, switchMap, take } from 'rxjs/operators'
+import { del, set } from 'idb-keyval'
+import { BehaviorSubject, from, Subject, Observable, of } from 'rxjs'
+import { catchError, map } from 'rxjs/operators'
 import { openDB, IDBPDatabase } from 'idb'
 import { BungieQueueService } from '../services/queue.service'
 
 interface ManifestDatabase {
   Activity: { [key: string]: DestinyActivityDefinition }
   ActivityMode: { [key: string]: DestinyActivityModeDefinition }
+}
+
+interface ManifestDefinitions {
+  Activity?: {
+    dbTable: Record<string, DestinyActivityDefinition>
+    get(hash: number): DestinyActivityDefinition | undefined
+  }
+  ActivityMode?: {
+    dbTable: Record<string, DestinyActivityModeDefinition>
+    get(modeType: number): DestinyActivityModeDefinition | undefined
+  }
 }
 
 @Injectable({
@@ -33,19 +42,10 @@ export class ManifestService {
   state$ = new BehaviorSubject<ManifestServiceState>(this.state)
   /** A signal for when we've loaded a new remote manifest. */
   newManifest$ = new Subject<void>()
-  defs: {
-    Activity?: {
-      dbTable: Record<string, DestinyActivityDefinition>;
-      get(hash: number): DestinyActivityDefinition | undefined;
-    };
-    ActivityMode?: {
-      dbTable: Record<string, DestinyActivityModeDefinition>;
-      get(modeType: number): DestinyActivityModeDefinition | undefined;
-    };
-  } = {}
+  defs: ManifestDefinitions = {}
 
-  private localStorageKey = 'd2-manifest-version'
-  private idbKey = 'd2-manifest'
+  private readonly localStorageKey = 'd2-manifest-version'
+  private readonly idbKey = 'd2-manifest'
   private db: IDBPDatabase<ManifestDatabase> | null = null
   private manifestVersion$ = new BehaviorSubject<string | null>(null)
 
@@ -53,7 +53,7 @@ export class ManifestService {
     this.initializeDatabase()
   }
 
-  private async initializeDatabase() {
+  private async initializeDatabase(): Promise<void> {
     try {
       this.db = await openDB<ManifestDatabase>('destiny-manifest', 1, {
         upgrade(db) {
@@ -77,7 +77,7 @@ export class ManifestService {
     }
   }
 
-  private async checkManifestVersion() {
+  private async checkManifestVersion(): Promise<void> {
     const action = getDestinyManifest
     const callback = async (response: ServerResponse<DestinyManifest>) => {
       if (response?.Response?.version) {
@@ -91,11 +91,10 @@ export class ManifestService {
       return response
     }
 
-    const subscription = this.bungieQueue.addToQueue('getDestinyManifest', action, callback).subscribe()
-    return subscription
+    this.bungieQueue.addToQueue('getDestinyManifest', action, callback).subscribe()
   }
 
-  private async updateManifest(manifest: DestinyManifest) {
+  private async updateManifest(manifest: DestinyManifest): Promise<void> {
     if (!this.db) {
       throw new Error('Database not initialized')
     }
@@ -160,7 +159,7 @@ export class ManifestService {
     this.setState({ statusText })
   }
 
-  private async saveManifestToIndexedDB(manifest: any, version: string, tables: string[]) {
+  private async saveManifestToIndexedDB(manifest: Record<string, unknown>, version: string, tables: string[]): Promise<void> {
     try {
       await set(this.idbKey, manifest)
       localStorage.setItem(this.localStorageKey, version)
@@ -170,17 +169,12 @@ export class ManifestService {
     }
   }
 
-  private deleteManifestFile() {
+  private deleteManifestFile(): void {
     localStorage.removeItem(this.localStorageKey)
     del(this.idbKey)
   }
 
-  /**
-   * Returns a promise for the cached manifest of the specified
-   * version as a Uint8Array, or rejects.
-   */
-
-  private setState(newState: Partial<ManifestServiceState>) {
+  private setState(newState: Partial<ManifestServiceState>): void {
     this.state = { ...this.state, ...newState }
     this.state$.next(this.state)
   }

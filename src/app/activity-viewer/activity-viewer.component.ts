@@ -5,8 +5,8 @@ import { BungieAuthService } from '../bungie-auth/bungie-auth.service';
 import { ManifestService } from '../manifest/manifest.service';
 import { BungieQueueService } from '../services/queue.service';
 import { Activity } from '../types/activity.types';
-import { BehaviorSubject, EMPTY, forkJoin, Observable, of, Subscription } from 'rxjs';
-import { distinctUntilChanged, map, switchMap, take, tap } from 'rxjs/operators';
+import { BehaviorSubject, forkJoin, Observable, of, Subscription } from 'rxjs';
+import { distinctUntilChanged, switchMap, take, tap } from 'rxjs/operators';
 import { 
   DestinyActivityHistoryResults,
   DestinyActivityModeType,

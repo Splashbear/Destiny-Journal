@@ -1,11 +1,15 @@
 import { Pipe, PipeTransform } from '@angular/core'
 
+interface DayActivities {
+  length: number;
+}
+
 @Pipe({
   name: 'longestStreaks',
   pure: false,
 })
 export class LongestStreaksPipe implements PipeTransform {
-  transform(days: any, args?: any): any {
+  transform(days: DayActivities[]): string {
     let currentActive = 0
     let currentInactive = 0
     let longestActive = 0
@@ -25,6 +29,6 @@ export class LongestStreaksPipe implements PipeTransform {
         }
       }
     }
-    return longestActive + ' days active | ' + longestInactive + ' days inactive'
+    return `${longestActive} days active | ${longestInactive} days inactive`
   }
 }

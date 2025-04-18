@@ -2,14 +2,15 @@
 // import { destiny } from '../scrubland.typings'
 
 import { Pipe, PipeTransform } from '@angular/core'
+import { Activity } from '../types/activity.types'
 
 @Pipe({
   name: 'activitiesTotalTime',
   pure: false,
 })
 export class ActivitiesTotalTimePipe implements PipeTransform {
-  transform(activities: destiny.Activity[], periods?: number): any {
-    let time = activities.reduce(function (totalTime, activity) {
+  transform(activities: Activity[], periods?: number): string {
+    let time = activities.reduce((totalTime, activity) => {
       return totalTime + +activity.values.timePlayedSeconds.basic.value
     }, 0)
     if (periods) {
@@ -18,6 +19,12 @@ export class ActivitiesTotalTimePipe implements PipeTransform {
     const d = Math.floor(time / 86400)
     const h = Math.floor((time % 86400) / 3600)
     const m = Math.floor(((time % 86400) % 3600) / 60)
-    return d > 0 ? `${d}d ${h}h ${m}m` : h > 0 ? `${h}h ${m}m` : `${m}m`
+    if (d > 0) {
+      return `${d}d ${h}h ${m}m`
+    } else if (h > 0) {
+      return `${h}h ${m}m`
+    } else {
+      return `${m}m`
+    }
   }
 }

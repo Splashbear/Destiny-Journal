@@ -1,13 +1,15 @@
 import { Pipe, PipeTransform } from '@angular/core'
 
+interface LoadingState {
+  loading: boolean;
+}
+
 @Pipe({
   name: 'loadingReduce',
   pure: false,
 })
 export class LoadingReducePipe implements PipeTransform {
-  transform(loading: { loading: boolean }[], args?: any): any {
-    return loading.some(function (load, i, array) {
-      return load.loading
-    })
+  transform(loading: LoadingState[]): boolean {
+    return loading.some((load) => load.loading);
   }
 }

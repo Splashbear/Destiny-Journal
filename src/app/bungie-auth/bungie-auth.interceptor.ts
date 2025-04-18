@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@angular/core'
+import { Injectable } from '@angular/core'
 import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor } from '@angular/common/http'
 import { Observable } from 'rxjs'
 import { BungieOAuthStorage } from './bungie-auth.storage'

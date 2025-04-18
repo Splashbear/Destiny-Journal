@@ -2,15 +2,15 @@
 // import { destiny } from '../scrubland.typings'
 
 import { Pipe, PipeTransform } from '@angular/core'
+import { Activity } from '../types/activity.types'
 
 @Pipe({
   name: 'addTime',
   pure: false,
 })
 export class AddTimePipe implements PipeTransform {
-  transform(activities: destiny.Activity[], modeFilter?: any): number {
-    let count = 0
-    activities.forEach((activity) => {
+  transform(activities: Activity[], modeFilter?: number | string): number {
+    return activities.reduce((count, activity) => {
       if (
         !modeFilter ||
         modeFilter === 0 ||
@@ -18,9 +18,9 @@ export class AddTimePipe implements PipeTransform {
         modeFilter === activity.activityDetails.mode ||
         activity.activityDetails.modes.indexOf(+modeFilter) > -1
       ) {
-        count += activity.values.timePlayedSeconds.basic.value
+        return count + activity.values.timePlayedSeconds.basic.value;
       }
-    })
-    return count
+      return count;
+    }, 0);
   }
 }

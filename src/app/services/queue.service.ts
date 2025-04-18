@@ -2,8 +2,8 @@ import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { GetPostGameCarnageReportParams } from 'bungie-api-ts/destiny2'
 import { ServerResponse } from 'bungie-api-ts/common'
-import { BehaviorSubject, Observable, Subscription, Subject } from 'rxjs'
-import { debounceTime, take } from 'rxjs/operators'
+import { BehaviorSubject, Observable, Subject } from 'rxjs'
+import { debounceTime } from 'rxjs/operators'
 
 type BungieAction =
   | 'getGlobalAlerts'
@@ -16,10 +16,10 @@ type BungieAction =
   | 'getHistoricalStats'
   | 'getCharacter'
 
-interface QueueItem<T = any> {
-  actionFunction: (config: any, params: any) => Promise<ServerResponse<T>>
+interface QueueItem<T = unknown> {
+  actionFunction: (config: unknown, params: unknown) => Promise<ServerResponse<T>>
   callback: (response: ServerResponse<T>) => Promise<T> | T
-  params?: any
+  params?: unknown
 }
 
 interface QueueState {
