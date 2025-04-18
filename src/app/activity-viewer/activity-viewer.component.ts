@@ -42,6 +42,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -58,6 +59,7 @@ import { ReactiveFormsModule } from '@angular/forms';
     MatFormFieldModule,
     MatInputModule,
     MatDatepickerModule,
+    MatNativeDateModule,
     MatProgressSpinnerModule,
     PlatformIconComponent
   ]
@@ -145,7 +147,9 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     this.subs.push(
       this.route.params.subscribe((params) => {
         this.username = params['username'];
-        this.loadUserData();
+        if (this.username) {
+          this.loadUserData();
+        }
       })
     );
   }
@@ -159,14 +163,15 @@ export class ActivityViewerComponent implements OnInit, OnDestroy {
     this.errorStatus = '';
     this.errorMessage = '';
 
-    this.bungieQueueService.addToQueue('getMembershipDataForCurrentUser', async () => {
+    this.bungieQueueService.addToQueue('searchDestinyPlayer', async () => {
       const response = await this.quria.user.GetMembershipDataForCurrentUser();
       if (response?.Response) {
         this.membershipData$.next(response.Response);
         this.displayName = this.username;
+        this.membershipType = response.Response.destinyMemberships[0]?.membershipType;
       } else {
         this.errorStatus = 'Error';
-        this.errorMessage = response?.Message || 'Failed to load user data';
+        this.errorMessage = 'User not found';
       }
       this.loading = false;
       return response;

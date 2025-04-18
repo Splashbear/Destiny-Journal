@@ -27,9 +27,7 @@ export class FrontPageComponent {
 
   searchByUsername() {
     if (this.username.trim()) {
-      this.router.navigate(['/activities'], {
-        queryParams: { username: this.username.trim() }
-      });
+      this.router.navigate(['/activities', this.username.trim()]);
     }
   }
 }
